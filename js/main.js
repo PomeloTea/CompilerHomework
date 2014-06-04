@@ -8,7 +8,6 @@ $(document).ready(function() {
         reader.onload = (function(file) {
             return function(e) {
             	content[file.name] = e.target.result;
-            	//alert(file.name);
                 Lexer(file.name);
                 Parser();
             }

@@ -76,9 +76,13 @@ function splitProgram(name) {
 	}
 }
 
-function nextToken() {
+function nextToken() {	
+	lookaheadptr++;
+	if(lookaheadptr >= lexeme.length) {
+		return null;
+	}
 	var curLexeme = lexeme[lookaheadptr];
-	var type = "";
+	var type;
 	switch(curLexeme) {
 		case "public" :
 		case "private" :
@@ -86,7 +90,6 @@ function nextToken() {
 		case "abstract" :
 		case "static" :
 		case "final" :
-		case "const" :
 			type = "qualifier";
 			break;
 		case "int" :
@@ -95,11 +98,16 @@ function nextToken() {
 		case "long" :
 		case "boolean" :
 		case "byte" :
+		case "char" :
 			type = "paraType";
 			break;
 		case "~" :
 		case "!" :
 			type = "unaryOprt";
+			break;
+		case "++":
+		case "--":
+			type = "";
 			break;
 		case "+" :
 		case "-" :
@@ -108,15 +116,21 @@ function nextToken() {
 		case "%" :
 		case "&" :
 		case "|" :
+		case "&&" :
+		case "||" :
 		case "^" :
 		case "<<" :
 		case ">>" :
+		case "+=" :
+		case "-=" :
 			type = "binaryOprt";
 			break;
 		case ">" :
 		case ">=" :
 		case "<" :
 		case "<=" :
+		case "==" :
+		case "!=" :
 			type = "compOptr";
 			break;
 		case "class" :
@@ -131,10 +145,14 @@ function nextToken() {
 		case "void" :
 			type = "void";
 			break;
+		case "{":
+			type = "{";
+			break;
+		case "}":
+			type = "}";
 		default:
 			type = "id";
 	}
-	lookaheadptr++;
 	return {type: type, value: curLexeme}
 }
 
