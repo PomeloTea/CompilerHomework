@@ -55,6 +55,14 @@ hr {
 	cursor: pointer;
 }
 
+.active-file {
+	background-color: #eee;
+}
+
+#filelist a:hover {
+	background-color: #f5f5f5;
+}
+
 /* source */
 #source-div {
 	width: 430px;

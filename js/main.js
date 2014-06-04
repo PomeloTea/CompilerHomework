@@ -47,6 +47,16 @@ $(document).ready(function() {
         doSave("result", "text/latex", filename + "-result.js");
     });
 
+    $('#filelist').on('click', 'a', function(){
+        $('.active-file').removeClass('active-file');
+        $(this).addClass('active-file');
+        var filename = $($(this).children()[0]).html();
+        var source = content[filename];
+        source = source.replace(/\n/g, "<br/>");
+        source = source.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+        $('#source-div').html(source);
+    });
+
 });
 
 var fileTemplate = '<li><a>' +
@@ -67,9 +77,40 @@ function handleFile(f) {
             $('#filelist').append(fileLi);
             content[filename] = e.target.result;
             Lexer(filename);
-            Parser();
+            //Parser();
         }
     })(f);
     reader.readAsText(f);
 }
 
+//函数功能：将value以type为形式、name为名称，从浏览器下载到本地
+function doSave(value, type, name) {
+    var blob;
+    if (typeof window.Blob == "function") {
+        blob = new Blob([value], {
+            type: type
+        });
+    } else {
+        var BlobBuilder = window.BlobBuilder || window.MozBlobBuilder || window.WebKitBlobBuilder || window.MSBlobBuilder;
+        var bb = new BlobBuilder();
+        bb.append(value);
+        blob = bb.getBlob(type);
+    }
+    var URL = window.URL || window.webkitURL;
+    var bloburl = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    if ('download' in anchor) {
+        anchor.style.visibility = "hidden";
+        anchor.href = bloburl;
+        anchor.download = name;
+        document.body.appendChild(anchor);
+        var evt = document.createEvent("MouseEvents");
+        evt.initEvent("click", true, true);
+        anchor.dispatchEvent(evt);
+        document.body.removeChild(anchor);
+    } else if (navigator.msSaveBlob) {
+        navigator.msSaveBlob(blob, name);
+    } else {
+        location.href = bloburl;
+    }
+}
