@@ -158,9 +158,6 @@ class MyArrayList {
 		for(int i = 0; i < 5; i++) {
 			list2.remove(0);
 		}
-		
-		int a = 0;
-		a++;
 	}
 
 }

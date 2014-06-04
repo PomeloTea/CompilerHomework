@@ -2,11 +2,31 @@
 <head>
 	<meta charset="UTF-8" />
 	<title>compiler</title>
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="css/site.css">
 	<script type="text/javascript" src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/index.js"></script>
 	<script type="text/javascript" src="js/lexer.js"></script>
 	<script type="text/javascript" src="js/parser.js"></script>
 	<script type="text/javascript" src="js/main.js"></script>
 </head>
 <body>
-	<input type="file" id="files" name="files[]"/>
+  <div id="back">
+    <div id="file-div">
+      <button id="fileinput-btn" class="btn btn-primary">选择文件</button>
+      <input id="fileinput" type="file" multiple/>
+      <div id="info">
+        <br/><br/>
+      </div>
+      <div id="filedrop">请选择文件<br/>或将文件拖拽至此</div>
+      <ul id="filelist" class="nav nav-pills nav-stacked">
+      </ul>
+    </div>
+    <div id="source-div">
+    	source
+    </div>
+    <div id="result-div">
+    	result
+    </div>
+  </div>
 </body>

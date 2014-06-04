@@ -1,0 +1,80 @@
+#back {
+	width: 1200px;
+	margin: auto;
+}
+
+hr {
+	margin: 0;
+}
+
+/* file */
+#file-div {
+	width: 300px;
+	background-color: #efe;
+	padding: 30px;
+	float: left;
+	margin-top: 80px;
+	margin-bottom: 80px;
+}
+
+#fileinput {
+	height: 34px;
+	width: 82px;
+	opacity: 0;
+	cursor: pointer;
+	position: relative;
+	top: -34px;
+}
+
+#filedrop {
+	height: 100px;
+	width: 240px;
+	margin-top: -60px;
+	margin-bottom: 20px;
+	border: 2px dashed #ccc;
+	padding: 30px;
+	border-radius: 10px;
+}
+
+#info {
+	position: relative;
+	top: -70px;
+	left: 90px;
+}
+
+#success, #fail {
+	padding-left: 5px;
+}
+
+#filelist>li {
+	cursor: pointer;
+}
+
+.download {
+	float: right;
+	cursor: pointer;
+}
+
+/* source */
+#source-div {
+	width: 430px;
+	min-height: 500px;
+	background-color: #E8F3FD;
+	float: left;
+	margin-top: 80px;
+	margin-bottom: 80px;
+	margin-left: 20px;
+	padding: 30px;
+}
+
+/* result */
+#result-div {
+	width: 430px;
+	min-height: 500px;
+	background-color: #FAFFE0;
+	float: right;
+	margin-top: 80px;
+	margin-bottom: 80px;
+	margin-left: 20px;
+	padding: 30px;
+}
