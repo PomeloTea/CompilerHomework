@@ -103,11 +103,9 @@ function nextToken() {
 			break;
 		case "~" :
 		case "!" :
-			type = "unaryOprt";
-			break;
 		case "++":
 		case "--":
-			type = "";
+			type = "unaryOprt";
 			break;
 		case "+" :
 		case "-" :
@@ -133,6 +131,21 @@ function nextToken() {
 		case "!=" :
 			type = "compOptr";
 			break;
+				case "{":
+			type = "{";
+			break;
+		case "}" :
+			type = "}";
+			break;
+		case "," :
+			type = ",";
+			break;
+		case "." :
+			type = ".";
+			break;
+		case ";" :
+			type = ";";
+			break;
 		case "class" :
 			type = "class";
 			break;
@@ -145,11 +158,18 @@ function nextToken() {
 		case "void" :
 			type = "void";
 			break;
-		case "{":
-			type = "{";
-			break;
-		case "}":
-			type = "}";
+		case "if" :
+			type = "if";
+			break
+		case "else" :
+			type = "else";
+			break
+		case "for" :
+			type = "for";
+			break
+		case "while" :
+			type = "while";
+			break
 		default:
 			type = "id";
 	}

@@ -35,12 +35,164 @@ function parseParaType() {
 	return t;
 }
 
-function parseConstructFunc() {
+function parsePara() {
+	var paraType = parseParaType();
+	var paraName = parseID();
+	return {type:"parameter", paraType:paraType, name:paraName}
+}
+
+function parseAssignStat() {
 
 }
 
-function parseFunc() {
+function parseConditionStat() {
 
+}
+
+function parseForStat() {
+	//循环条件
+	MatchToken("for");
+	MatchToken("(");
+	var init;
+	if(lookahead.type != ";") {
+		init = parseAssignStat();
+	}
+	MatchToken(';');
+
+	var end;
+	if(lookahead.type != ";") {
+		end = parseConditionStat();
+	}
+	MatchToken(';');
+
+	if(lookahead.type != ')') {
+		var cycle = parseAssignStat();
+	}
+	MatchToken(")");
+
+	//循环语句块
+	var stats = [];
+	if(lookahead.value == '{') {
+		stats = parseBlock();
+	} else {
+		stats.push(parseStatement());
+	}
+	return {type:"forStat", init:init, end:end, cycle:cycle, stats:stats}
+}
+
+function parseIfStat() {
+	var 
+	MatchToken("if");
+	MatchToken('(');
+	var condition;
+	if(lookahead.type != ')') {
+		condition = parseConditionStat();
+	}
+	MatchToken(')');
+	var stats = [];
+	if(lookahead.value == '{') {
+		stats = parseBlock();
+	} else {
+		stats.push(parseStatement());
+	}
+}
+
+function parseWhileStat() {
+	MatchToken("while");
+	MatchToken('(');
+	var end = parseConditionStat();
+	MatchToken(')');
+
+	//循环语句块
+	var stats = [];
+	if(lookahead.value == '{') {
+		stats = parseBlock();
+	} else {
+		stats.push(parseStatement());
+	}
+	return {type:"whileStat", end:end, stats:stats}
+}
+
+function parseStatement() {
+	var stat;
+	if(lookahead.type == "for") {
+		stat = parseForStat();
+	} else if(lookahead.type == "if") {
+		stat = parseIfStat();
+	} else if(lookahead.type == "while") {
+		stat = parseWhileStat();
+	} else if(lookahead.type == "paraType") {
+		stat = parseVariable();
+	}
+	return stat;
+}
+
+function parseBlock() {
+	MatchToken('{');
+	var vars = [];
+	var stats = [];
+	if(lookahead.type == 'paraType') {
+		vars.push(parseVariable());
+	} else {
+		stats.push(parseStatment());
+	}
+	MatchToken('}');
+	return {type:"block", vars:vars, stats:stats}
+}
+
+function parseConstructFunc() {
+	//函数名
+	var funcName = parseID();
+
+	//参数列表
+	var paras = [];
+	MatchToken('(');
+	if(lookahead.type == 'paraType' || lookahead.type == 'id') {
+		paras.push(parsePara());
+	}
+	while(lookahead.value == ',') {
+		MatchToken(',');
+		paras.push(parsePara());
+	}
+	MatchToken(')');
+	var stats = parseBlock();
+	return {type:"constructFunc", name:funcName, paraList:paras, stats:stats}
+}
+
+function parseFunc() {
+	//修饰词
+	var qualifiers = [];
+	while(lookahead.type == "qualifiers") {
+		qualifiers.push(parseQualifier());
+	}
+
+	//返回值
+	var retType;
+	if(lookahead.type == "void") {
+		retType = "void";
+	} else if(lookahead.type == "paraType") {
+		retType = parseParaType();
+	} else if(lookahead.type == "id") {
+		retType = parseID();
+	}
+
+	//函数名
+	var funcName = parseID();
+
+	//参数列表
+	var paras = [];
+	MatchToken('(');
+	if(lookahead.type == 'paraType' || lookahead.type == 'id') {
+		paras.push(parsePara());
+	}
+	while(lookahead.value == ',') {
+		MatchToken(',');
+		paras.push(parsePara());
+	}
+	MatchToken(')');
+	var stats = parseBlock();
+
+	return {type:"function", name:funcName, retType:retType, paraList:paras, stats:stats}
 }
 
 function parseVariable() {
@@ -149,7 +301,7 @@ function parseClass() {
 	var vars = [];		//变量
 	var funcs = [];		//函数
 	while(lookahead.value != "}") {
-		/*if(lookahead.type == "id") {
+		if(lookahead.type == "id") {
 			cfuncs.push(parseConstructFunc());
 		} else {
 			var t = lookaheadptr - 1;
@@ -165,7 +317,7 @@ function parseClass() {
 				lookahead = nextToken();
 				vars.push(parseVariable());
 			}
-		}*/
+		}
 		lookahead = nextToken();
 	}
 

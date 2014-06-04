@@ -77,7 +77,7 @@ function handleFile(f) {
             $('#filelist').append(fileLi);
             content[filename] = e.target.result;
             Lexer(filename);
-            //Parser();
+            Parser();
         }
     })(f);
     reader.readAsText(f);
