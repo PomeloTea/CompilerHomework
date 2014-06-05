@@ -24,43 +24,57 @@ var C = class_(function () {
     });
 });
 
-function generateParaList(paraList) {
+function addTab(n) {
+	var tabs = "";
+	for(var i = 0; i < n; i++)
+		tabs += '\t';
+	return tabs;
+}
 
+function generateParaList(paraList) {
+	var paraListCode = "";
+	for(var i = 0; i < paraList.length - 1; i++) {
+		paraListCode += paraList[i].name + ", ";
+	}
+	if(paraList.length > 0) {
+		paraListCode += paraList[paraList.length - 1].name;
+	}
+	return paraListCode;
+}
+
+function generateCParaList(paraList) {
+	var paraListCode = "";
+	for(var i = 0; i < paraList.length; i++) {
+		//paraListCode += paraList[i].name + ", ";
+	}
+	paraListCode += "function(";
+	paraListCode += generateParaList(paraList);
+	paraListCode += ") {\n";
+	return paraListCode;
 }
 
 function generateStats(stats) {
 
 }
 
-function generateField(field) {
-	if(field.type != "variable")
+function generateField(field, tab) {
+	if(field.type != "parameter")
 		return "";
 
 	var fieldCode;
-	if(field.qualifiers == "private")
-		fieldCode = "var ";
-	else
-		fieldCode = "this.";
-	fieldCode += field.paraName;
+	//if(field.qualifiers == "private")
+	//	fieldCode = "var ";
+	//else
+	fieldCode = addTab(tab) + "this.";
+	fieldCode += field.name;
 	if(field.isArray)
 		fieldCode += " = []";
 	fieldCode += ";\n\n";
 	return fieldCode;
 }
 
-function generateCfuncs(cfuncs, classname) {
-	if(cfuncs.length == 0)
-		return "";
-
-	var cfuncsCode = "";
-	for(var i = 0; i < cfuncs.length; i++) {
-		cfuncsCode += generateCfunc(cfuncs[i], classname);
-	}
-	return cfuncsCode;
-}
-
-function generateCfunc(cfunc, classname) {
-	if(cfunc.type != "constructFunc")
+function generateCfunc(cfunc, tab) {
+	if(cfunc.type != "constructFunction")
 		return "";
 
 	/*
@@ -75,14 +89,41 @@ function generateCfunc(cfunc, classname) {
         x = "String: " + s;
     });
 	*/
-	var cfuncCode = classname + "._(";
-	generateParaList(cfunc.paraList);
-	generateStats(cfunc.stats);
-	cfuncCode += "});\n\n";
+	var cfuncCode = addTab(tab) + cfunc.name + "._(";
+	cfuncCode += generateCParaList(cfunc.paraList);
+	//generateStats(cfunc.stats);
+	cfuncCode += addTab(tab) + "});\n\n";
 	return cfuncCode;
 }
 
-function generateMethods(methods) {
+function generateCfuncs(cfuncs, tab) {
+	if(cfuncs.length == 0)
+		return "";
+
+	var cfuncsCode = "";
+	for(var i = 0; i < cfuncs.length; i++) {
+		cfuncsCode += generateCfunc(cfuncs[i], tab);
+	}
+	return cfuncsCode;
+}
+
+function generateSimpleMethod(method) {
+
+}
+
+function generateMultipleMethod(methods) {
+
+}
+
+function generateMainMethod(method) {
+	var mainCode = "function main(";
+	mainCode += generateParaList(method.paraList);
+	mainCode += ") {\n";
+	mainCode += "}\n\n";
+	return mainCode;
+}
+
+function generateMethods(methods, tab) {
 	/*
 	//成员函数
     this.m = FunctionH.overload({
@@ -116,32 +157,11 @@ function generateMethods(methods) {
 	return codes;
 }
 
-function generateSimpleMethod(method) {
-
-}
-
-function generateMultipleMethod(methods) {
-
-}
-
-function generateMainMethod(method) {
-	var mainCode = "function main(";
-	for(var i = 0; i < method.paraList.length - 1; i++) {
-		mainCode += method.paraList[i].name + ", ";
-	}
-	if(method.paraList.length > 0) {
-		mainCode += method.paraList[method.paraList.length - 1].name;
-	}
-	mainCode += ") {\n";
-	mainCode += "}\n\n";
-	return mainCode;
-}
-
-function generateClass(myclass) {
+function generateClass(myclass, tab) {
 	if(myclass.type != "class")
 		return "";
 
-	var classCode = "var ";
+	var classCode = addTab(tab) + "var ";
 	var mainCode;
 	if(myclass.name == undefined) {
 		alert("error: no class name");
@@ -151,18 +171,18 @@ function generateClass(myclass) {
 	classCode += " = class_(function(){\n\n";
 	if(myclass.fields != undefined) {
 		for(var i = 0; i < myclass.fields.length; i++) {
-			classCode += generateField(myclass.fields[i]);
+			classCode += generateField(myclass.fields[i], tab + 1);
 		}
 	}
 	if(myclass.cfucns != undefined) {
-		classCode += generateCfuncs(myclass.cfucns, myclass.name);
+		classCode += generateCfuncs(myclass.cfucns, tab + 1);
 	}
 	if(myclass.methods != undefined) {
-		var MethodsCode = generateMethods(myclass.methods);
+		var MethodsCode = generateMethods(myclass.methods, tab + 1);
 		classCode += MethodsCode.methods;
 		mainCode = MethodsCode.main;
 	}
-	classCode += "});\n\n";
+	classCode += addTab(tab) + "});\n\n";
 	var codes = {
 		classCode: classCode,
 		mainCode: mainCode
@@ -184,14 +204,14 @@ function Gnerator(program) {
 	var mainCode;
 	if(program.classes != undefined) {
 		for(var i = 0; i < program.classes.length; i++) {
-			var classCode = generateClass(program.classes[i]);
+			var classCode = generateClass(program.classes[i], 0);
 			jsCode += classCode.classCode;
 			mainCode = classCode.mainCode;
 		}
 	}
 	if(program.globalvars != undefined) {
 		for(var i = 0; i < program.globalvars.length; i++) {
-			jsCode += enerateGlobalvar(program.globalvars[i]);
+			jsCode += enerateGlobalvar(program.globalvars[i], 0);
 		}
 	}
 	if(mainCode != "") {
