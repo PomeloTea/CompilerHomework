@@ -79,11 +79,49 @@ function parsePara() {
 				throw "error";
 			}
 		}
-		
+
 		return {type:"parameter", paraType:paraType, isArray:isArray, name:paraName}	
 	} catch(err) {
 		return false;
 	}
+}
+
+function parseParaDef(tokens) {
+	try {
+		if(tokens.length == 1) {
+			throw "error";
+		}
+		var i = 0;
+		var paraType = tokens[i].value;
+		
+		var isArray = false;
+		i += 1;
+		if(tokens[i].value == '[' && tokens[i+1].value == ']') {
+			isArray = true;
+			i += 2;
+		} else if(tokens[i].value == '[' && tokens[i+1].value != ']') {
+			throw "error";
+		}
+		var paraName = tokens[i].value;
+		i += 1;
+		if(i < tokens.length && tokens[i].value == '[' && tokens[i+1].value == ']') {
+			isArray = true;
+			i += 2;
+		} else if(i < tokens.length && tokens[i].value == '[' && tokens[i+1].value != ']') {
+			throw "error";
+		}
+		if(!MatchToken(';')) {
+			throw "error";ß
+		}
+
+		return {type:"parameter", paraType:paraType, isArray:isArray, name:paraName}	
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseVariable() {
+
 }
 
 function parseBlock() {
@@ -152,7 +190,41 @@ function parseFunctions(tokens, qs) {
 }
 
 function parseConstructFunc(className) {
+	try{
+		//参数列表
+		var paras = [];
+		if(!MatchToken('(')) {
+			throw "error";
+		}
+		if(lookahead.type == 'paraType' || lookahead.type == 'id') {
+			var para = parsePara();
+			if(!para) {
+				throw "error";
+			}
+			paras.push(para);
+		}
+		while(lookahead.value == ',') {
+			if(!MatchToken(',')) {
+				throw "error";
+			}
+			var para = parsePara();
+			if(!para) {
+				throw "error";
+			}
+			paras.push(para);
+		}
+		if(!MatchToken(')')) {
+			throw "error";
+		}
 
+		var stats = parseBlock();
+		if(!stats) {
+			throw "error";
+		}
+		return {type:"constructFunction", name:className, paraList:paras, stats:stats}
+	} catch(err) {
+		return false;
+	}
 }
 
 function parseClass(qualifiers) {
@@ -223,8 +295,12 @@ function parseClass(qualifiers) {
 					}
 					funcs.push(func);
 				}
-			} else {
-				throw "error";
+			} else if(lookahead.value == ';') {
+				var v = parseParaDef(pattern);
+				if(!v) {
+					throw "error";
+				}
+				vars.push(v);
 			}
 		}
 

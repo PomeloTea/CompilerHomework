@@ -178,16 +178,19 @@ function nextToken() {
 			break;
 		case "if" :
 			type = "if";
-			break
+			break;
 		case "else" :
 			type = "else";
-			break
+			break;
 		case "for" :
 			type = "for";
-			break
+			break;
 		case "while" :
 			type = "while";
-			break
+			break;
+		case "return" :
+			type = "return";
+			break;
 		default:
 			type = "id";
 	}
