@@ -1,6 +1,11 @@
 var lookahead;
 var lookaheadptr;
 
+function back(pos) {
+	lookaheadptr = pos;
+	lookahead = nextToken();
+}
+
 function MatchToken(expected) {
 	if(lookahead.value == expected) {
 		lookahead = nextToken();
@@ -37,12 +42,102 @@ function parseParaType() {
 
 function parsePara() {
 	var paraType = parseParaType();
+	var isArray = false;
+	if(lookahead.value == '[') {
+		isArray = true;
+		MatchToken('[');
+		MatchToken(']');
+	}
 	var paraName = parseID();
+	var isArray = false;
 	return {type:"parameter", paraType:paraType, name:paraName}
 }
 
-function parseAssignStat() {
+function parseExpr() {
 
+}
+
+function parseAssignStat() {
+	//修饰词
+	var qualifiers = [];
+	while(lookahead.type == "qualifiers") {
+		qualifiers.push(parseQualifier());
+	}
+
+	//变量类型
+	var paraType;
+	var isArray = false;
+	var isInArray = false;
+	var value;	
+	var size;
+	if(lookahead.type == "paraType") {
+		paraType = parseParaType();
+		if(lookahead.value == "[") {
+			MatchToken("[");
+			MatchToken("]");
+			isArray = true;
+		}
+	} else if(lookahead.type == "id") {
+		var isCustomType = false
+		var curpos = lookaheadptr - 1;
+		lookahead = nextToken();
+		if(lookahead.type == "id") {
+			isCustomType = true
+		}
+		back(curpos);
+		if(isCustomType) {
+			paraType = parseID();
+		}
+	}
+
+	//变量名
+	var paraName = parseID();
+
+	if(!isArray && lookahead.value == "[") {
+		MatchToken("[");
+		if(lookahead.value == "]") {				
+			MatchToken("]");
+			isArray = true;
+		} else {
+			
+		}
+	} else {
+
+	}
+
+	if(lookahead.value == "=") {
+		MatchToken("=");
+		if(!isArray) {
+			value = parseID();
+		} else {
+			size = 0;
+			value = [];
+			if(lookahead.value == '{') {
+				MatchToken('{');
+				if(lookahead.type == 'id') {
+					value.push(parseID());
+					size += 1;
+					while(lookahead.value == ",") {
+						MatchToken(",");
+						value.push(parseID());
+						size += 1;
+					}
+				}
+				MatchToken('}');
+			} else {
+				MatchToken("new");
+				if(lookahead.value == paraType) {
+					MatchToken(paraType);
+					MatchToken('[');
+					size = parseExpr();
+					MatchToken(']');
+				}
+			}
+		}
+	}
+
+	MatchToken(";");
+	return{type:"variable", paraType:paraType, name:paraName, isArray:isArray, value:value, size:size, isInArray:isInArray, pos:pos}
 }
 
 function parseConditionStat() {
@@ -80,8 +175,7 @@ function parseForStat() {
 	return {type:"forStat", init:init, end:end, cycle:cycle, stats:stats}
 }
 
-function parseIfStat() {
-	var 
+function parseIf() {
 	MatchToken("if");
 	MatchToken('(');
 	var condition;
@@ -95,6 +189,48 @@ function parseIfStat() {
 	} else {
 		stats.push(parseStatement());
 	}
+	return {type:"if", stats:stats}
+}
+
+function parseElseIf() {
+	MatchToken("if");
+	MatchToken('(');
+	var condition;
+	if(lookahead.type != ')') {
+		condition = parseConditionStat();
+	}
+	MatchToken(')');
+	var stats = [];
+	if(lookahead.value == '{') {
+		stats = parseBlock();
+	} else {
+		stats.push(parseStatement());
+	}
+	return {type:"elseif", stats:stats}
+}
+
+function parseElse() {
+	var stats = [];
+	if(lookahead.value == '{') {
+		stats = parseBlock();
+	} else {
+		stats.push(parseStatement());
+	}
+	return {type:"else", stats:stats}
+}
+
+function parseIfStat() {
+	var stats = [];
+	stats.push(parseIf());
+	while(lookahead.type == "else") {
+		MatchToken("else");
+		if(lookahead.type == "if") {
+			stats.push(parseElseIf());
+		} else {
+			stats.push(parseElse());
+		}
+	}
+	return {type:"ifStat", stats:stats}
 }
 
 function parseWhileStat() {
@@ -123,6 +259,8 @@ function parseStatement() {
 		stat = parseWhileStat();
 	} else if(lookahead.type == "paraType") {
 		stat = parseVariable();
+	} else {
+
 	}
 	return stat;
 }
@@ -176,6 +314,13 @@ function parseFunc() {
 		retType = parseID();
 	}
 
+	var isArray = false;
+	if(lookahead.value == "[") {
+		isArray = true;
+		MatchToken('[');
+		MatchToken(']');
+	}
+
 	//函数名
 	var funcName = parseID();
 
@@ -192,7 +337,7 @@ function parseFunc() {
 	MatchToken(')');
 	var stats = parseBlock();
 
-	return {type:"function", name:funcName, retType:retType, paraList:paras, stats:stats}
+	return {type:"function", name:funcName, retType:retType, isArray:isArray, paraList:paras, stats:stats}
 }
 
 function parseVariable() {
@@ -225,45 +370,8 @@ function parseVariable() {
 		isArray = true;
 	}
 
-	//如果赋值
-	if(lookahead.value == "=") {
-		MatchToken("=");
-		if(!isArray) {
-			value = parseID();
-		} else {
-			size = 0;
-			value = [];
-			if(lookahead.value == '{') {
-				MatchToken('{');
-				if(lookahead.type == 'id') {
-					value.push(parseID());
-					size += 1;
-					while(lookahead.value == ",") {
-						MatchToken(",");
-						value.push(parseID());
-						size += 1;
-					}
-				}
-				MatchToken('}');
-			} else {
-				MatchToken("new");
-				if(lookahead.value == paraType) {
-					MatchToken(paraType);
-					MatchToken('(');
-					var t = parseInt(lookahead.value);
-					if(t.toString() == lookahead.value) {
-						size = t;
-					} else {
-						alert("syntax error");
-					}
-					MatchToken(')');
-				}
-			}
-		}
-	}
-
 	MatchToken(";");
-	return{type:"variable", paraType:paraType, name:paraName, value:value, size:size}
+	return{type:"variable", paraType:paraType, name:paraName, isArray:isArray}
 }
 
 function parseClass() {
@@ -299,22 +407,22 @@ function parseClass() {
 
 	var cfuncs = [];	//构造函数
 	var vars = [];		//变量
+	var assigns = [];	//赋值语句		
 	var funcs = [];		//函数
 	while(lookahead.value != "}") {
 		if(lookahead.type == "id") {
 			cfuncs.push(parseConstructFunc());
 		} else {
-			var t = lookaheadptr - 1;
+			var curpos = lookaheadptr - 1;
 			while(!(lookahead.value == "(" || lookahead.value == ";" || lookahead.value == "=")) {
 				lookahead = nextToken();
 			}
+			back(curpos);
 			if(lookahead.value == "(") {
-				lookaheadptr = t;
-				lookahead = nextToken();
 				funcs.push(parseFunc());
+			} else if(lookahead.value == "=") {
+				assigns.push(parseAssignStat());
 			} else {
-				lookaheadptr = t;
-				lookahead = nextToken();
 				vars.push(parseVariable());
 			}
 		}
@@ -322,7 +430,7 @@ function parseClass() {
 	}
 
 	MatchToken("}");
-	return {type:"class", qualifiers:qualifiers, name:className, fathers:fathers, interfaces:interfaces, cfucns:cfuncs, fields:vars, methods:funcs}
+	return {type:"class", qualifiers:qualifiers, name:className, fathers:fathers, interfaces:interfaces, cfucns:cfuncs, fields:vars, assigns:assigns, methods:funcs}
 }
 
 function parseDeclaration() {
