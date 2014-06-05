@@ -146,6 +146,24 @@ function nextToken() {
 		case ";" :
 			type = ";";
 			break;
+		case "(" :
+			type = "(";
+			break;
+		case ")" :
+			type = ")";
+			break;
+		case "[" :
+			type = "[";
+			break;
+		case "]" :
+			type = "]";
+			break;
+		case "?" :
+			type = "?";
+			break;
+		case ":" :
+			type = ":";
+			break;
 		case "class" :
 			type = "class";
 			break;
