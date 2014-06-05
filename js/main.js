@@ -1,4 +1,5 @@
 ﻿var content = [];
+var result;
 
 $(document).ready(function() {
 	$("#files").change(function(event) {
@@ -55,6 +56,12 @@ $(document).ready(function() {
         source = source.replace(/\n/g, "<br/>");
         source = source.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
         $('#source-div').html(source);
+        result = result.replace(/\n/g, "<br/>");
+        result = result.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+        $('#result-div').html(result);
+    });
+
+    $('#myclassDownload-btn').click(function(){
     });
 
 });
@@ -78,6 +85,7 @@ function handleFile(f) {
             content[filename] = e.target.result;
             Lexer(filename);
             Parser();
+            result = Gnerator(grammarTree);
         }
     })(f);
     reader.readAsText(f);
