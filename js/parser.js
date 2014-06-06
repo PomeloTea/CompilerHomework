@@ -141,11 +141,11 @@ function parseExpr4(tokens) {
 		if(tokens.length == 1) {
 			if(tokens[0].type == "integer") {
 				//1
-				return {type:"atomExpr", variable:tokens[0].value}
+				return {type:"atomExpr", value:tokens[0].value}
 			} else if(tokens[0].type == "id") {
 				//a
 				if(isValidID(tokens[0].value)) {
-					return {type:"atomExpr", variable:tokens[0].value}
+					return {type:"varExpr", variable:tokens[0].value}
 				} else {
 					throw "error";
 				}
