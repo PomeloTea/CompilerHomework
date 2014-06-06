@@ -12,10 +12,26 @@ function MatchToken(expected) {
 	}
 }
 
+function isValidID(id) {
+	try {
+		if(!(id[0] == '_' || (id[0] >= 'a' && id[0] <= 'z') || (id[0] >= 'A' && id[0] <= 'Z'))) {
+			throw "error";
+		}
+		for(var i = 1; i < id.length; i++) {
+			if(!isCharOrNum(id[i])) {
+				throw "error";
+			}
+		}
+		return true;
+	} catch(err) {
+		return false;
+	}
+}
+
 function parseID() {
 	try {
 		var id = lookahead.value;
-		if(id[0] >= '0' && id[0] <= '9') {
+		if(!isValidID(id)) {
 			throw "error";
 		}
 		lookahead = nextToken();
@@ -120,6 +136,277 @@ function parseVarDef(tokens) {
 	}
 }
 
+function parseExpr4(tokens) {
+	try {
+		if(tokens.length == 1) {
+			if(tokens[0].type == "integer") {
+				//1
+				return {type:"atomExpr", variable:tokens[0].value}
+			} else if(tokens[0].type == "id") {
+				//a
+				if(isValidID(tokens[0].value)) {
+					return {type:"atomExpr", variable:tokens[0].value}
+				} else {
+					throw "error";
+				}
+			}
+			else {
+				throw "error";
+			}
+		} else if(tokens[0].value == '(' && tokens[tokens.length-1].value == ')') {
+			//(expr)
+			var exprPattern = [];
+			for(var i = 1; i < tokens.length-1; i++) {
+				exprPattern.push(tokens[i]);
+			}
+			if(exprPattern.length <= 0) {
+				throw "error";
+			}
+			var expr = parseExpr1(exprPattern);
+			if(!expr) {
+				throw "error";
+			}
+			return {type:"exprInBrackets", expr:expr}
+		} else {
+			if(tokens[0].type == "id") {
+				if(isValidID(tokens[0].value)) {
+					if(tokens[1].value == '(') {
+						//fucnName(expr, expr)
+						if(tokens[tokens.length-1].value != ')') {
+							throw "error";
+						}
+						var funcName = tokens[0].value;
+						var i = 2;
+						var paraList = [];
+						while(i < tokens.length-1) {
+							var paraPattern = [];
+							while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
+								paraPattern.push(tokens[i]);
+								i++;
+							}
+							if(paraPattern.length <= 0) {
+								throw "error";
+							}
+							var para = parseExpr1(paraPattern);
+							if(!para) {
+								throw "error";
+							}
+							paraList.push(para);
+							i++;
+						}
+						return {type:"callStaticFuncExpr", funcName:fucnName, paraList:paraList}
+					} else if(tokens[1].value == '.') {
+						var objName = tokens[0].value;
+						if(tokens[3].value == '(') {
+							//obj.funcName(expr, expr)
+							var funcName = tokens[2].value;
+							if(tokens[tokens.length-1].value != ')') {
+								throw "error";
+							}
+							var i = 4;
+							var paraList = [];
+							while(i < tokens.length-1) {
+								var paraPattern = [];
+								while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
+									paraPattern.push(tokens[i]);
+									i++;
+								}
+								if(paraPattern.length <= 0) {
+									throw "error";
+								}
+								var para = parseExpr1(paraPattern);
+								if(!para) {
+									throw "error";
+								}
+								paraList.push(para);
+								i++;
+							}
+							return {type:"callFuncExpr", objName:objName, funcName:funcName, paraList:paraList}
+						} else if(tokens.length == 3){
+							//obj.attr
+							var attrName = tokens[2].value;
+							return {type:"objAttrExpr", objName:objName, attrName:attrName}
+						} else {
+							throw "error";
+						}
+					} else {
+						throw "error";
+					}
+				} else {
+					throw "error";
+				}
+			} else {
+				throw "error";
+			}
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr3(tokens) {
+	try {
+		if(tokens[0].type == 'unaryOprt') {
+			//~expr !expr ++expr --expr
+			var oprt = tokens[0].value;
+			var exprPattern = [];
+			for(var i = 1; i < tokens.length; i++) {
+				exprPattern.push(tokens[i]);
+			}
+			if(exprPattern.length <= 0) {
+				throw "error";
+			}
+			var expr = parseExpr4(exprPattern);
+			if(!expr) {
+				throw "error";
+			}
+			return {type:"forwardUnaryOprtExpr", oprt:oprt, expr:expr}
+
+		} else if(tokens[tokens.length-1].value == '++' ||
+			tokens[tokens.length-1].value == '--') {
+			//oprt++ oprt--
+			var oprt = tokens[tokens.length-1].value;
+			var exprPattern = [];
+			for(var i = 0; i < tokens.length-1; i++) {
+				exprPattern.push(tokens[i]);
+			}
+			if(exprPattern.length <= 0) {
+				throw "error";
+			}
+			var expr = parseExpr4(exprPattern);
+			if(!expr) {
+				throw "error";
+			}
+			return {type:"forwardUnaryOprtExpr", oprt:oprt, expr:expr}
+		} else {
+			var expr = parseExpr4(tokens);
+			if(!expr) {
+				throw "error";
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr2(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == '*' || tokens[i].value == '/' || tokens[i].value == '%') {
+				flag = true;
+				break;
+			}
+		}
+		if(flag) {
+			// expr oprt expr;
+			// oprt: * / %
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[i]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr3(left);
+			var rightexpr = parseExpr3(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr3(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr1(tokens) {
+	try {
+		//检查含有+= -= *= /= %=的表达式，运算符左侧必须只有一个variable
+		for(var i = 0; i < tokens.length; i++) {
+			if((tokens[i].value == "+=" || tokens[i].value == "-=" 
+				|| tokens[i].value == "*=" || tokens[i].value == "/=" || tokens[i].value == "%=")
+				&& i != 1) {
+				throw "error";
+			}
+		}
+		if(tokens.length > 1 && (tokens[1].value == "+=" || tokens[1].value == "-=" 
+			|| tokens[1].value == "*=" || tokens[1].value == "/=" || tokens[1].value == "%=")) {			
+			// id optr expr; 
+			// optr: += -= *= /=
+			if(tokens[0].type != "id") {
+				throw "error";
+			}
+			var varName = tokens[0].value;
+			var oprt = tokens[1].value;
+			var exprPattern = [];
+			var expr;
+			for(var i = 2; i < tokens.length; i++) {
+				exprPattern.push(tokens[i]);
+			}
+			expr = parseExpr1();
+			if(!expr) {
+				throw "error";
+			}
+			return {type:"cal&assignExpr", varName:varName, oprt:oprt, expr:expr}
+		} else {
+			var flag = false;
+			var i;
+			for(i = 0; i < tokens.length; i++) {
+				if(tokens[i].value == '+' || tokens[i].value == '-') {
+					flag = true;
+					break;
+				}
+			}
+			if(flag) {
+				// expr oprt expr;
+				// oprt: + -
+				var left = [];
+				var right = [];
+				var oprt;
+				for(var j = 0; j < i; j++) {
+					left.push(tokens[j]);
+				}
+				oprt = tokens[i].value;
+				for(var j = i+1; j < tokens.length; j++) {
+					right.push(tokens[i]);
+				}
+				if(left.length <= 0 || right.length <= 0) {
+					throw "error";
+				} 
+				var leftexpr = parseExpr2(left);
+				var rightexpr = parseExpr2(right);
+				if(!leftexpr || !rightexpr) {
+					throw "error";
+				}
+				return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
+			} else {
+				var expr = parseExpr2(tokens);
+				if(!expr) {
+					throw error;
+				}
+				return expr;
+			}
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
 function parseExpr(tokens) {
 	try {
 		if(tokens[0].value == "new") {
@@ -127,6 +414,7 @@ function parseExpr(tokens) {
 				throw "error";
 			}
 			if(tokens[2].value == '[') {
+				//new type[expr]
 				if(tokens[tokens.length-1].value != ']') {
 					throw "error";
 				}
@@ -141,6 +429,7 @@ function parseExpr(tokens) {
 				}
 				return {type:"newArrayExpr", paraType:paraType, size:size}
 			} else if(tokens[2].value == '(') {
+				//new className(expr, expr)
 				if(tokens[tokens.length-1].value != ')') {
 					throw "error";
 				}
@@ -156,7 +445,7 @@ function parseExpr(tokens) {
 					if(paraPattern.length <= 0) {
 						throw "error";
 					}
-					var para = parseExpr(paraPattern);
+					var para = parseExpr1(paraPattern);
 					if(!para) {
 						throw "error";
 					}
@@ -169,6 +458,7 @@ function parseExpr(tokens) {
 			}
 			
 		} else if(tokens[0].value == "{") {
+			//{1, 2, 3, 4}
 			var valueSet = [];
 			var i = 1;
 			while(i < tokens.length-1) {
@@ -180,7 +470,7 @@ function parseExpr(tokens) {
 				if(tokens[i].value == ',' && paraPattern.length <= 0) {
 					throw "error";
 				}
-				var para = parseExpr(paraPattern);
+				var para = parseExpr1(paraPattern);
 				if(!para) {
 					throw "error";
 				}
@@ -189,8 +479,13 @@ function parseExpr(tokens) {
 			}
 			return {type:"valueSetExpr", valueSet:valueSet}
 		} else {
-			return "expr";
+			var expr = parseExpr1(tokens);
+			if(!expr) {
+				throw "error";
+			}
+			return expr;
 		}
+		/*else */
 	} catch(err) {
 		return false
 	}

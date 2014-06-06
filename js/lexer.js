@@ -110,9 +110,14 @@ function nextToken() {
 			break;
 		case "+" :
 		case "-" :
+		case "+=" :
+		case "-=" :
 		case "*" :
 		case "/" :
 		case "%" :
+		case "*=" :
+		case "/=" :
+		case "%=" :
 			type = "binaryOprt";
 			break;
 		case ">" :
