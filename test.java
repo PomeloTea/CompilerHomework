@@ -16,11 +16,11 @@ public static class MyArrayList {
 	// 用于测试的main函数
 	public static void main(String[] args) {
 		int[] list0 = { 1, 2, 3, 4, 5, 6, 7 };
-		
+
 		// initial test
 		MyArrayList list1 = new MyArrayList();
 		MyArrayList list2 = new MyArrayList(5);
-		MyArrayList list3 = new MyArrayList(list0);
+		MyArrayList list3 = new MyArrayList(list0, list1);
 
 	}
 

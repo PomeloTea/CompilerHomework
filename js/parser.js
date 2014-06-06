@@ -136,6 +136,9 @@ function parseExpr(tokens) {
 					sizePattern.push(tokens[i]);
 				}
 				var size = parseExpr(sizePattern);
+				if(!size) {
+					throw "error";
+				}
 				return {type:"newArrayExpr", paraType:paraType, size:size}
 			} else if(tokens[2].value == '(') {
 				if(tokens[tokens.length-1].value != ')') {
@@ -145,14 +148,19 @@ function parseExpr(tokens) {
 				var i = 3;
 				var paraList = [];
 				while(i < tokens.length-1) {
-					if(tokens[i].value == "," || tokens[i].value == ')') {
+					var paraPattern = [];
+					while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
+						paraPattern.push(tokens[i]);
+						i++;
+					}
+					if(paraPattern.length <= 0) {
 						throw "error";
 					}
-					paraList.push(tokens[i]);
-					i++;
-					if(tokens[i].value != ',' && tokens[i].value != ')') {
+					var para = parseExpr(paraPattern);
+					if(!para) {
 						throw "error";
 					}
+					paraList.push(para);
 					i++;
 				}
 				return {type:"newObjectExpr", className:className, paraList:paraList}
@@ -164,14 +172,19 @@ function parseExpr(tokens) {
 			var valueSet = [];
 			var i = 1;
 			while(i < tokens.length-1) {
-				if(tokens[i].value == ",") {
+				var paraPattern = [];
+				while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != '}') {
+					paraPattern.push(tokens[i]);
+					i++;
+				}
+				if(tokens[i].value == ',' && paraPattern.length <= 0) {
 					throw "error";
 				}
-				valueSet.push(tokens[i]);
-				i++;
-				if(tokens[i].value != ',') {
+				var para = parseExpr(paraPattern);
+				if(!para) {
 					throw "error";
 				}
+				valueSet.push(para);
 				i++;
 			}
 			return {type:"valueSetExpr", valueSet:valueSet}
@@ -277,6 +290,9 @@ function parseAssignStat(tokens) {
 			throw "error";
 		}
 		expr = parseExpr(exprPattern);
+		if(!expr) {
+			throw "error";
+		}
 		return {type:"assignExpr", varType:varType, varName:varName, isArray:isArray, inArray:inArray, pos:pos, expr:expr}
 	} catch(err) {
 		return false;
