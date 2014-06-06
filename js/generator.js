@@ -58,7 +58,7 @@ function generateStats(stats) {
 }
 
 function generateField(field, tab) {
-	if(field.type != "parameter")
+	if(field.type != "variable")
 		return "";
 
 	var fieldCode;

@@ -39,7 +39,7 @@ function splitProgram(name) {
 					t = "";
 				}
 			} else if(c == '"' || c == '\'') {
-				lexeme.push(c);
+				t += c;
 				stack.push(c);
 			} else if(c == '\r' || c == '\n' || c == '\t' || c == ' ') {
 
@@ -49,9 +49,9 @@ function splitProgram(name) {
 		} else if(len == 1) {
 			if(stack[len-1] == '"' || stack[len-1] == '\'') {
 				if(stack[len-1] == c) {
+					t += c;
 					lexeme.push(t);
 					t = "";
-					lexeme.push(c);
 					stack.pop();
 				} else {
 					if(c == '\\') {
@@ -83,6 +83,7 @@ function nextToken() {
 	}
 	var curLexeme = lexeme[lookaheadptr];
 	var type;
+	var id = 0;
 	switch(curLexeme) {
 		case "public" :
 		case "private" :
@@ -112,15 +113,6 @@ function nextToken() {
 		case "*" :
 		case "/" :
 		case "%" :
-		case "&" :
-		case "|" :
-		case "&&" :
-		case "||" :
-		case "^" :
-		case "<<" :
-		case ">>" :
-		case "+=" :
-		case "-=" :
 			type = "binaryOprt";
 			break;
 		case ">" :
@@ -131,68 +123,45 @@ function nextToken() {
 		case "!=" :
 			type = "compOptr";
 			break;
-				case "{":
-			type = "{";
-			break;
+		case "{":
 		case "}" :
-			type = "}";
-			break;
 		case "," :
-			type = ",";
-			break;
 		case "." :
-			type = ".";
-			break;
 		case ";" :
-			type = ";";
-			break;
 		case "(" :
-			type = "(";
-			break;
 		case ")" :
-			type = ")";
-			break;
 		case "[" :
-			type = "[";
-			break;
 		case "]" :
-			type = "]";
-			break;
 		case "?" :
-			type = "?";
-			break;
 		case ":" :
-			type = ":";
-			break;
+		case "'":
+		case '"' :
 		case "class" :
-			type = "class";
-			break;
 		case "implement" :
-			type = "implement";
-			break;
 		case "extends" :
-			type = "extends";
-			break;
 		case "void" :
-			type = "void";
-			break;
 		case "if" :
-			type = "if";
-			break;
 		case "else" :
-			type = "else";
-			break;
 		case "for" :
-			type = "for";
-			break;
 		case "while" :
-			type = "while";
-			break;
+		case "new" :
 		case "return" :
-			type = "return";
+		case "true" :
+		case "false" :
+		case "null" :
+			type = curLexeme;
 			break;
 		default:
 			type = "id";
+	}
+
+	if(curLexeme[0] == '"' || curLexeme[0] == "'") {
+		type = "string";
+	}
+
+	var temp = parseInt(curLexeme);
+	if(curLexeme == temp.toString()) {
+		type = "integer";
 	}
 	return {type: type, value: curLexeme}
 }

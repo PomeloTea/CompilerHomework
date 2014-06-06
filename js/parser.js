@@ -7,7 +7,7 @@ function MatchToken(expected) {
 		lookahead = nextToken();
 		return true;
 	} else {
-		alert("MatchToken: syntax error -- " + expected);
+		alert("MatchToken: syntax error");
 		return false;
 	}
 }
@@ -86,7 +86,7 @@ function parsePara() {
 	}
 }
 
-function parseParaDef(tokens) {
+function parseVarDef(tokens) {
 	try {
 		if(tokens.length == 1) {
 			throw "error";
@@ -111,17 +111,212 @@ function parseParaDef(tokens) {
 			throw "error";
 		}
 		if(!MatchToken(';')) {
-			throw "error";ß
+			throw "error";
 		}
 
-		return {type:"parameter", paraType:paraType, isArray:isArray, name:paraName}	
+		return {type:"variable", paraType:paraType, isArray:isArray, name:paraName}	
 	} catch(err) {
 		return false;
 	}
 }
 
-function parseVariable() {
+function parseExpr(tokens) {
+	try {
+		if(tokens[0].value == "new") {
+			if(tokens.length < 3) {
+				throw "error";
+			}
+			if(tokens[2].value == '[') {
+				if(tokens[tokens.length-1].value != ']') {
+					throw "error";
+				}
+				var paraType = tokens[1].value;
+				var sizePattern = [];
+				for(var i = 3; i < tokens.length-1; i++) {
+					sizePattern.push(tokens[i]);
+				}
+				var size = parseExpr(sizePattern);
+				return {type:"newArrayExpr", paraType:paraType, size:size}
+			} else if(tokens[2].value == '(') {
+				if(tokens[tokens.length-1].value != ')') {
+					throw "error";
+				}
+				var className = tokens[1].value;
+				var i = 3;
+				var paraList = [];
+				while(i < tokens.length-1) {
+					if(tokens[i].value == "," || tokens[i].value == ')') {
+						throw "error";
+					}
+					paraList.push(tokens[i]);
+					i++;
+					if(tokens[i].value != ',' && tokens[i].value != ')') {
+						throw "error";
+					}
+					i++;
+				}
+				return {type:"newObjectExpr", className:className, paraList:paraList}
+			} else {
+				throw "error";
+			}
+			
+		} else if(tokens[0].value == "{") {
+			var valueSet = [];
+			var i = 1;
+			while(i < tokens.length-1) {
+				if(tokens[i].value == ",") {
+					throw "error";
+				}
+				valueSet.push(tokens[i]);
+				i++;
+				if(tokens[i].value != ',') {
+					throw "error";
+				}
+				i++;
+			}
+			return {type:"valueSetExpr", valueSet:valueSet}
+		} else {
+			return "expr";
+		}
+	} catch(err) {
+		return false
+	}
+}
 
+function parseAssignStat(tokens) {
+	try {
+		var varType;
+		var varName;
+		var isArray = false;
+		var inArray = false;
+		var posPattern = [];
+		var pos;
+		var exprPattern = [];
+		var expr;
+
+		//left side of "="
+		if(tokens[1].value == "=") {
+			//id = expr;
+			varName = tokens[0].value;
+			for(var i = 2; i < tokens.length; i++) {
+				exprPattern.push(tokens[i]);
+			}
+		} else if(tokens[2].value == "=") {
+			//type id = expr;
+			varType = tokens[0].value;
+			varName = tokens[1].value;
+			for(var i = 3; i < tokens.length; i++) {
+				exprPattern.push(tokens[i]);
+			}
+		} else if(tokens[1].value == '[' && tokens[2].value == ']') {
+			isArray = true;
+			varType = tokens[0].value;
+			varName = tokens[3].value;
+			if(tokens[5].value == "new") {
+				//type[] id = new type[expr];
+				if(tokens[6].value != varType) {
+					throw "error";
+				}
+				for(var i = 5; i < tokens.length; i++) {
+					exprPattern.push(tokens[i]);
+				}
+			} else if(tokens[5].value == '{') {
+				//type[] id = {a, b, c}
+				for(var i = 5; i < tokens.length; i++) {
+					exprPattern.push(tokens[i]);
+				}
+			} else {
+				throw "error";
+			}
+ 		} else if(tokens[2].value == '[' && tokens[3].value == ']') {
+			isArray = true;
+			varType = tokens[0].value;
+			varName = tokens[1].value;
+			if(tokens[5].value == "new") {
+				//type id[] = new type[expr];
+				if(tokens[6].value != varType) {
+					throw "error";
+				}
+				for(var i = 5; i < tokens.length; i++) {
+					exprPattern.push(tokens[i]);
+				}
+			} else if(tokens[5] == '{') {
+				//type id[] = {a, b, c}
+				if(tokens[length-1].value != '}') {
+					throw "error";
+				}
+				for(var i = 5; i < tokens.length; i++) {
+					exprPattern.push(tokens[i]);
+				}
+			} else {
+				throw "error";
+			}
+ 		} else if(tokens[1].value == '[') {
+ 			//id[expr] = expr;
+ 			inArray = true;
+ 			varName = tokens[0].value;
+ 			var i;
+ 			for(i = 2; i < tokens.length; i++) {
+ 				if(tokens[i].value == ']') {
+ 					break;
+ 				}
+ 				posPattern.push(tokens[i]);
+ 			}
+ 			if(posPattern.length <= 0) {
+ 				throw "error";
+ 			}
+ 			pos = parseExpr(posPattern);
+ 			for(i = i + 2; i < tokens.length; i++) {
+ 				exprPattern.push(tokens[i]);
+ 			}
+ 		}
+		else {
+			throw "error";
+		}
+		if(exprPattern.length <= 0) {
+			throw "error";
+		}
+		expr = parseExpr(exprPattern);
+		return {type:"assignExpr", varType:varType, varName:varName, isArray:isArray, inArray:inArray, pos:pos, expr:expr}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseStat() {
+	try {
+		var stat;
+		if(lookahead.value == "for") {
+			throw "error";
+		} else if(lookahead.value == "while") {
+			throw "error";
+		} else if(lookahead.value == "if") {
+			throw "error";
+		} else if(lookahead.value == "return") {
+			throw "error";
+		} else {			
+			var pattern = [];
+			var isAssignStat = false;
+			while(lookahead.value != ';') {
+				pattern.push(lookahead);
+				if(lookahead.value == "=") {
+					isAssignStat = true;
+				}
+				lookahead = nextToken();
+			}
+			if(isAssignStat) {
+				stat = parseAssignStat(pattern);
+			} else {
+				stat = parseSingleExpr(pattern);
+			}
+			if(!MatchToken(';')) {
+				throw "error";
+			}
+		}
+		return stat;
+	} catch(err) {
+		return false;
+	}
 }
 
 function parseBlock() {
@@ -129,10 +324,18 @@ function parseBlock() {
 		if(!MatchToken('{')){
 			throw "error";
 		}
+		var stats = [];
+		while(lookahead.value != '}') {
+			var stat = parseStat();
+			if(!stat) {
+				throw "error";
+			}
+			stats.push(stat);
+		}
 		if(!MatchToken('}')) {
 			throw "error";
 		}
-		return true;
+		return stats;
 	} catch(err) {
 		return false;
 	}
@@ -296,7 +499,7 @@ function parseClass(qualifiers) {
 					funcs.push(func);
 				}
 			} else if(lookahead.value == ';') {
-				var v = parseParaDef(pattern);
+				var v = parseVarDef(pattern);
 				if(!v) {
 					throw "error";
 				}
