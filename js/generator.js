@@ -53,8 +53,39 @@ function generateCParaList(paraList) {
 	return paraListCode;
 }
 
-function generateStats(stats) {
-
+function generateStat(stat, tab) {
+	var statCode = addTab(tab);
+	if(stat.expr.type != undefined) {
+		switch(stat.expr.type) {
+			case "valueSetExpr":
+				statCode += "var " + stat.varName + " = [";
+				for(var i in stat.expr.valueSet) {
+					statCode += stat.expr.valueSet[i] + ", ";
+				}
+				if(stat.expr.valueSet.length > 0)
+					statCode = statCode.substr(0, statCode.length - 2);
+				statCode += "]";
+				break;
+			case "newArrayExpr":
+				statCode += "var " + stat.varName + " = new Array(";
+				statCode += stat.expr.size + ")";
+				break;
+			case "newObjectExpr":
+				statCode += "var " + stat.varName + " = new ";
+				statCode += stat.expr.className + "(";
+				for(var i in stat.expr.paraList) {
+					statCode += stat.expr.paraList[i] + ", ";
+				}
+				if(stat.expr.paraList.length > 0)
+					statCode = statCode.substr(0, statCode.length - 2);
+				statCode += ")";
+				break;
+		}
+	} else {
+		statCode += stat.varName;
+	}
+	statCode += ";\n";
+	return statCode;
 }
 
 function generateField(field, tab) {
@@ -108,17 +139,18 @@ function generateCfuncs(cfuncs, tab) {
 }
 
 function generateSimpleMethod(method) {
-
 }
 
 function generateMultipleMethod(methods) {
-
 }
 
 function generateMainMethod(method) {
 	var mainCode = "function main(";
 	mainCode += generateParaList(method.paraList);
 	mainCode += ") {\n";
+	for(var i in method.stats) {
+		mainCode += generateStat(method.stats[i], 1);
+	}
 	mainCode += "}\n\n";
 	return mainCode;
 }
