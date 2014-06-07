@@ -136,12 +136,110 @@ function parseVarDef(tokens) {
 	}
 }
 
-function parseExpr4(tokens) {
+function parseFuncCallExpr(tokens) {
+	try {
+		if(tokens[1].value == '(') {
+			//fucnName(expr, expr)
+			if(tokens[tokens.length-1].value != ')') {
+				throw "error";
+			}
+			var funcName = tokens[0].value;
+			var i = 2;
+			var paraList = [];
+			while(i < tokens.length-1) {
+				var paraPattern = [];
+				var isAssignStat = false;
+				while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
+					paraPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
+					i++;
+				}
+				if(paraPattern.length <= 0) {
+					throw "error";
+				}
+				var para;
+				if(!isAssignStat) {
+					para = parseExpr0(paraPattern);
+				} else {
+					para = parseAssignStat(paraPattern);
+				}
+				if(!para) {
+					throw "error";
+				}
+				paraList.push(para);
+				i++;
+			}
+			return {type:"callStaticFuncExpr", funcName:funcName, paraList:paraList}
+		} else if(tokens[1].value == '.') {
+			var objName = tokens[0].value;
+			if(tokens[3].value == '(') {
+				//obj.funcName(expr, expr)
+				var funcName = tokens[2].value;
+				if(tokens[tokens.length-1].value != ')') {
+					throw "error";
+				}
+				var i = 4;
+				var paraList = [];
+				while(i < tokens.length-1) {
+					var paraPattern = [];
+					var isAssignStat = false;
+					while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
+						paraPattern.push(tokens[i]);
+						if(tokens[i].value == '=') {
+							isAssignStat = true;
+						}
+						i++;
+					}
+					if(paraPattern.length <= 0) {
+						throw "error";
+					}
+					var para;
+					if(!isAssignStat) {
+						para = parseExpr0(paraPattern);
+					} else {
+						para = parseAssignStat(paraPattern);
+					}
+					if(!para) {
+						throw "error";
+					}
+					paraList.push(para);
+					i++;
+				}
+				return {type:"callFuncExpr", objName:objName, funcName:funcName, paraList:paraList}
+			} else if(tokens[3].value == '.') {
+				var func;
+				if(tokens[2].type == "id" && isValidID(tokens[2].value)) {
+					var pattern = [];
+					for(var i = 2; i < tokens.length; i++) {
+						pattern.push(tokens[i]);
+					}
+					func = parseFuncCallExpr();
+					return {type:"mCallFuncExpr", objName:objName, func:func}
+				} else {
+					throw "error";
+				}
+			} else {
+				throw "error";
+			}
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr9(tokens) {
 	try {
 		if(tokens.length == 1) {
 			if(tokens[0].type == "integer") {
 				//1
 				return {type:"atomExpr", value:tokens[0].value}
+			} else if(tokens[0].value == "null" ||
+				tokens[0].value == "true" ||
+				tokens[0].value == "false") {
+				//null true false
+				return {type:"ntfExpr", value:tokens[0].value};
 			} else if(tokens[0].type == "id") {
 				//a
 				if(isValidID(tokens[0].value)) {
@@ -168,74 +266,41 @@ function parseExpr4(tokens) {
 			}
 			return {type:"exprInBrackets", expr:expr}
 		} else {
-			if(tokens[0].type == "id") {
-				if(isValidID(tokens[0].value)) {
-					if(tokens[1].value == '(') {
-						//fucnName(expr, expr)
-						if(tokens[tokens.length-1].value != ')') {
-							throw "error";
-						}
-						var funcName = tokens[0].value;
-						var i = 2;
-						var paraList = [];
-						while(i < tokens.length-1) {
-							var paraPattern = [];
-							while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
-								paraPattern.push(tokens[i]);
-								i++;
-							}
-							if(paraPattern.length <= 0) {
-								throw "error";
-							}
-							var para = parseExpr1(paraPattern);
-							if(!para) {
-								throw "error";
-							}
-							paraList.push(para);
-							i++;
-						}
-						return {type:"callStaticFuncExpr", funcName:fucnName, paraList:paraList}
-					} else if(tokens[1].value == '.') {
-						var objName = tokens[0].value;
-						if(tokens[3].value == '(') {
-							//obj.funcName(expr, expr)
-							var funcName = tokens[2].value;
-							if(tokens[tokens.length-1].value != ')') {
-								throw "error";
-							}
-							var i = 4;
-							var paraList = [];
-							while(i < tokens.length-1) {
-								var paraPattern = [];
-								while(i < tokens.length-1 && tokens[i].value != ',' && tokens[i].value != ')') {
-									paraPattern.push(tokens[i]);
-									i++;
-								}
-								if(paraPattern.length <= 0) {
-									throw "error";
-								}
-								var para = parseExpr1(paraPattern);
-								if(!para) {
-									throw "error";
-								}
-								paraList.push(para);
-								i++;
-							}
-							return {type:"callFuncExpr", objName:objName, funcName:funcName, paraList:paraList}
-						} else if(tokens.length == 3){
-							//obj.attr
-							var attrName = tokens[2].value;
-							return {type:"objAttrExpr", objName:objName, attrName:attrName}
-						} else {
-							throw "error";
-						}
-					} else {
+			if(tokens[0].type == "id" && isValidID(tokens[0].value)) {
+				if(tokens[tokens.length-1].value == ')') {
+					//functions
+					var func = parseFuncCallExpr(tokens);
+					if(!func) {
 						throw "error";
 					}
-				} else {
-					throw "error";
+					return func;				
+				} else if(tokens[1].value == '.') {
+					if(!isValidID(tokens[0].value)) {
+						throw "error";
+					}
+					var objName = tokens[0].value;
+					if(tokens.length == 3) {
+						if(!isValidID(tokens[2].value)) {
+							throw "error";
+						}
+						var attrName = tokens[2].value;
+						return {type:"objAttrExpr", objName:objName, attrName:attrName}
+					} else {
+						var pattern = [];
+						for(var i = 2; i < tokens.length; i++) {
+							pattern.push(tokens[i]);
+						}
+						if(pattern.length <= 0) {
+							throw "error";
+						}
+						var expr = parseExpr9(pattern);
+						if(!expr) {
+							throw "error";
+						}
+						return {type:"mObjAttrExpr", objName:objName, expr:expr}
+					}
 				}
-			} else {
+ 			} else {
 				throw "error";
 			}
 		}
@@ -244,11 +309,19 @@ function parseExpr4(tokens) {
 	}
 }
 
-function parseExpr3(tokens) {
+function parseExpr8(tokens) {
 	try {
 		if(tokens[0].type == 'unaryOprt') {
 			//~expr !expr ++expr --expr
 			var oprt = tokens[0].value;
+			if(oprt == "++" || oprt == "--") {
+				if(tokens.length != 2) {
+					throw "error";
+				}
+				if(!isValidID(tokens[1].value)) {
+					throw "error";
+				}
+			} 
 			var exprPattern = [];
 			for(var i = 1; i < tokens.length; i++) {
 				exprPattern.push(tokens[i]);
@@ -256,30 +329,28 @@ function parseExpr3(tokens) {
 			if(exprPattern.length <= 0) {
 				throw "error";
 			}
-			var expr = parseExpr4(exprPattern);
+			var expr = parseExpr9(exprPattern);
 			if(!expr) {
 				throw "error";
 			}
 			return {type:"forwardUnaryOprtExpr", oprt:oprt, expr:expr}
 
-		} else if(tokens[tokens.length-1].value == '++' ||
-			tokens[tokens.length-1].value == '--') {
-			//oprt++ oprt--
-			var oprt = tokens[tokens.length-1].value;
-			var exprPattern = [];
-			for(var i = 0; i < tokens.length-1; i++) {
-				exprPattern.push(tokens[i]);
-			}
-			if(exprPattern.length <= 0) {
+		} else if(tokens[tokens.length-1].value == '++' 
+			|| tokens[tokens.length-1].value == '--') {
+			//expr++ expr--
+			var oprt = tokens[1].value;
+			if(tokens.length != 2) {
 				throw "error";
 			}
-			var expr = parseExpr4(exprPattern);
-			if(!expr) {
+			if(!isValidID(tokens[0].value)) {
 				throw "error";
 			}
-			return {type:"forwardUnaryOprtExpr", oprt:oprt, expr:expr}
+			var pattern = [];
+			pattern.push(tokens[0]);
+			var expr = parseExpr9(pattern);
+			return {type:"backUnaryOprtExpr", oprt:oprt, expr:expr}
 		} else {
-			var expr = parseExpr4(tokens);
+			var expr = parseExpr9(tokens);
 			if(!expr) {
 				throw "error";
 			}
@@ -290,7 +361,7 @@ function parseExpr3(tokens) {
 	}
 }
 
-function parseExpr2(tokens) {
+function parseExpr7(tokens) {
 	try {
 		var flag = false;
 		var i;
@@ -311,7 +382,225 @@ function parseExpr2(tokens) {
 			}
 			oprt = tokens[i].value;
 			for(var j = i+1; j < tokens.length; j++) {
-				right.push(tokens[i]);
+				right.push(tokens[j]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr8(left);
+			var rightexpr = parseExpr8(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr8(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr6(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == '+' || tokens[i].value == '-') {
+				flag = true;
+				break;
+			}
+		}
+		if(flag) {
+			// expr oprt expr;
+			// oprt: + -
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[j]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr7(left);
+			var rightexpr = parseExpr7(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr7(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr5(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == '<=' || tokens[i].value == '>='
+				|| tokens[i].value == '<' || tokens[i].value == '>') {
+				flag = true;
+				break;
+			}
+		}
+		if(flag) {
+			// expr <= expr; expr >= expr
+			// expr < expr; expr > expr
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[j]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr6(left);
+			var rightexpr = parseExpr6(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"compExpr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr6(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr4(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == '==' || tokens[i].value == '!=') {
+				flag = true;
+				break;
+			}
+		}
+		if(flag) {
+			// expr == expr; expr != expr
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[j]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr5(left);
+			var rightexpr = parseExpr5(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"equalExpr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr5(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr3(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == '&&') {
+				flag = true;
+				break;
+			}
+		}
+		if(flag) {
+			// expr && expr;
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[j]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr4(left);
+			var rightexpr = parseExpr4(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"andExpr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr4(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr2(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == '||') {
+				flag = true;
+				break;
+			}
+		}
+		if(flag) {
+			// expr || expr;
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[j]);
 			}
 			if(left.length <= 0 || right.length <= 0) {
 				throw "error";
@@ -321,7 +610,7 @@ function parseExpr2(tokens) {
 			if(!leftexpr || !rightexpr) {
 				throw "error";
 			}
-			return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
+			return {type:"orExpr", oprt:oprt, left:leftexpr, right:rightexpr}
 		} else {
 			var expr = parseExpr3(tokens);
 			if(!expr) {
@@ -346,8 +635,8 @@ function parseExpr1(tokens) {
 		}
 		if(tokens.length > 1 && (tokens[1].value == "+=" || tokens[1].value == "-=" 
 			|| tokens[1].value == "*=" || tokens[1].value == "/=" || tokens[1].value == "%=")) {			
-			// id optr expr; 
-			// optr: += -= *= /=
+			// id oprt expr; 
+			// oprt: += -= *= /=
 			if(tokens[0].type != "id") {
 				throw "error";
 			}
@@ -358,49 +647,60 @@ function parseExpr1(tokens) {
 			for(var i = 2; i < tokens.length; i++) {
 				exprPattern.push(tokens[i]);
 			}
-			expr = parseExpr1();
+			expr = parseExpr1(exprPattern);
 			if(!expr) {
 				throw "error";
 			}
 			return {type:"cal&assignExpr", varName:varName, oprt:oprt, expr:expr}
 		} else {
-			var flag = false;
-			var i;
-			for(i = 0; i < tokens.length; i++) {
-				if(tokens[i].value == '+' || tokens[i].value == '-') {
-					flag = true;
-					break;
-				}
+			var expr = parseExpr2(tokens);
+			if(!expr) {
+				throw error;
 			}
-			if(flag) {
-				// expr oprt expr;
-				// oprt: + -
-				var left = [];
-				var right = [];
-				var oprt;
-				for(var j = 0; j < i; j++) {
-					left.push(tokens[j]);
-				}
-				oprt = tokens[i].value;
-				for(var j = i+1; j < tokens.length; j++) {
-					right.push(tokens[i]);
-				}
-				if(left.length <= 0 || right.length <= 0) {
-					throw "error";
-				} 
-				var leftexpr = parseExpr2(left);
-				var rightexpr = parseExpr2(right);
-				if(!leftexpr || !rightexpr) {
-					throw "error";
-				}
-				return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
-			} else {
-				var expr = parseExpr2(tokens);
-				if(!expr) {
-					throw error;
-				}
-				return expr;
+			return expr;
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseExpr0(tokens) {
+	try {
+		var flag = false;
+		var i;
+		for(i = 0; i < tokens.length; i++) {
+			if(tokens[i].value == ',') {
+				flag = true;
+				break;
 			}
+		}
+		if(flag) {
+			// expr , expr;
+			var left = [];
+			var right = [];
+			var oprt;
+			for(var j = 0; j < i; j++) {
+				left.push(tokens[j]);
+			}
+			oprt = tokens[i].value;
+			for(var j = i+1; j < tokens.length; j++) {
+				right.push(tokens[j]);
+			}
+			if(left.length <= 0 || right.length <= 0) {
+				throw "error";
+			} 
+			var leftexpr = parseExpr1(left);
+			var rightexpr = parseExpr1(right);
+			if(!leftexpr || !rightexpr) {
+				throw "error";
+			}
+			return {type:"commaExpr", oprt:oprt, left:leftexpr, right:rightexpr}
+		} else {
+			var expr = parseExpr1(tokens);
+			if(!expr) {
+				throw error;
+			}
+			return expr;
 		}
 	} catch(err) {
 		return false;
@@ -423,7 +723,7 @@ function parseExpr(tokens) {
 				for(var i = 3; i < tokens.length-1; i++) {
 					sizePattern.push(tokens[i]);
 				}
-				var size = parseExpr(sizePattern);
+				var size = parseExpr0(sizePattern);
 				if(!size) {
 					throw "error";
 				}
@@ -445,7 +745,7 @@ function parseExpr(tokens) {
 					if(paraPattern.length <= 0) {
 						throw "error";
 					}
-					var para = parseExpr1(paraPattern);
+					var para = parseExpr0(paraPattern);
 					if(!para) {
 						throw "error";
 					}
@@ -470,7 +770,7 @@ function parseExpr(tokens) {
 				if(tokens[i].value == ',' && paraPattern.length <= 0) {
 					throw "error";
 				}
-				var para = parseExpr1(paraPattern);
+				var para = parseExpr0(paraPattern);
 				if(!para) {
 					throw "error";
 				}
@@ -478,14 +778,28 @@ function parseExpr(tokens) {
 				i++;
 			}
 			return {type:"valueSetExpr", valueSet:valueSet}
+		} else if(tokens.length > 1 && tokens[1].value == '[') {
+			//var[i]
+			if(!isValidID(tokens[0].value) || tokens[tokens.length-1].value != ']') {
+				throw "error";
+			}
+			var varName = tokens[0].value
+			var pattern = [];
+			for(var i = 2; i < tokens.length-1; i++) {
+				pattern.push(tokens[i]);
+			}
+			var expr = parseExpr0(pattern);
+			if(!expr) {
+				throw "error";
+			}
+			return {type:"varInArrayExpr", varName:varName, pos:expr}
 		} else {
-			var expr = parseExpr1(tokens);
+			var expr = parseExpr0(tokens);
 			if(!expr) {
 				throw "error";
 			}
 			return expr;
 		}
-		/*else */
 	} catch(err) {
 		return false
 	}
@@ -497,6 +811,7 @@ function parseAssignStat(tokens) {
 		var varName;
 		var isArray = false;
 		var inArray = false;
+		var isDefined = false;
 		var posPattern = [];
 		var pos;
 		var exprPattern = [];
@@ -505,6 +820,7 @@ function parseAssignStat(tokens) {
 		//left side of "="
 		if(tokens[1].value == "=") {
 			//id = expr;
+			isDefined = true;
 			varName = tokens[0].value;
 			for(var i = 2; i < tokens.length; i++) {
 				exprPattern.push(tokens[i]);
@@ -573,12 +889,11 @@ function parseAssignStat(tokens) {
  			if(posPattern.length <= 0) {
  				throw "error";
  			}
- 			pos = parseExpr(posPattern);
+ 			pos = parseExpr0(posPattern);
  			for(i = i + 2; i < tokens.length; i++) {
  				exprPattern.push(tokens[i]);
  			}
- 		}
-		else {
+ 		} else {
 			throw "error";
 		}
 		if(exprPattern.length <= 0) {
@@ -588,7 +903,272 @@ function parseAssignStat(tokens) {
 		if(!expr) {
 			throw "error";
 		}
-		return {type:"assignExpr", varType:varType, varName:varName, isArray:isArray, inArray:inArray, pos:pos, expr:expr}
+		return {type:"assignExpr", varType:varType, varName:varName, isDefined:isDefined, isArray:isArray, inArray:inArray, pos:pos, expr:expr}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseSingleExpr(tokens) {
+	try {
+		if(tokens[0].value == '++' || tokens[0].value == '--') {
+			//++expr --expr
+			var oprt = tokens[0].value;
+			if(tokens.length != 2) {
+				throw "error";
+			}
+			if(!isValidID(tokens[1].value)) {
+				throw "error";
+			}
+			var pattern = [];
+			pattern.push(tokens[1]);
+			var expr = parseExpr9(pattern);
+			return {type:"forwardUnaryOprtExpr", oprt:oprt, expr:expr}
+		} else if(tokens[tokens.length-1].value == '++' 
+			|| tokens[tokens.length-1].value == '--') {
+			//erpr++ expr--
+			var oprt = tokens[1].value;
+			if(tokens.length != 2) {
+				throw "error";
+			}
+			if(!isValidID(tokens[0].value)) {
+				throw "error";
+			}
+			var pattern = [];
+			pattern.push(tokens[0]);
+			var expr = parseExpr9(pattern);
+			return {type:"backUnaryOprtExpr", oprt:oprt, expr:expr}
+		} else {
+			if(tokens[0].type == "id" && isValidID(tokens[0].value)) {
+				// 函数调用, 不接受类似a.length的属性值的调用
+				if(tokens[tokens.length-1].value != ')') {
+					throw "error";
+				}
+				var func = parseFuncCallExpr(tokens);
+				if(!func) {
+					throw "error";
+				}
+				return func;
+			} else {
+				throw "error";
+			}
+		}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseForStat() {
+	try {
+		if(!MatchToken('for')) {
+			throw "error";
+		}
+		if(!MatchToken('('))  {
+			throw "error";
+		}
+		var tokens = [];
+		while(lookahead.value != ';') {
+			tokens.push(lookahead);
+			lookahead = nextToken();
+		}
+		var expr1 = parseAssignStat(tokens);
+		if(!expr1) {
+			throw "error";
+		}
+		if(!MatchToken(';')) {
+			throw "error";
+		}
+
+		tokens = [];
+		while(lookahead.value != ';') {
+			tokens.push(lookahead);
+			lookahead = nextToken();
+		}
+		var expr2 = parseExpr0(tokens);
+		if(!expr2) {
+			throw "error";
+		}
+		if(!MatchToken(';')) {
+			throw "error";
+		}
+
+		tokens = [];
+		while(lookahead.value != ';') {
+			tokens.push(lookahead);
+			lookahead = nextToken();
+		}
+		var expr3;
+		if(tokens[0] == '++' || tokens[0] == '--'
+			|| tokens[tokens.length-1] == '++' || tokens[tokens.length-1] == '--') {
+			expr3 = parseSingleExpr();
+		} else {
+			expr3 = parseAssignStat(tokens);
+		}
+		if(!expr3) {
+			throw "error";
+		}
+		if(!MatchToken(')')) {
+			throw "error";
+		}
+
+		var stats;
+		if(lookahead.value == '{') {
+			stats = parseBlock();
+		} else {
+			stats = parseStat();
+		}
+		if(!stats) {
+			throw "error";
+		}
+		return {type:"forStats", expr1:expr1, expr2:expr2, expr3:expr3, stats:stats}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseWhileStat() {
+	try {
+		if(!MatchToken('while')) {
+			throw "error";
+		}
+		if(!MatchToken('(')) {
+			throw "error";
+		}
+		var tokens = [];
+		var brackets = [];
+		brackets.push('(');
+		var isNotFunc = true;
+		var old;
+		while(1) {
+			if(old && old.type == "id" && lookahead.value == '(') {
+				isNotFunc = false;
+			}
+			if(lookahead.value == '(') {
+				brackets.push('(');
+			} else if(lookahead.value == ')') {
+				brackets.pop(')');
+				if(brackets.length == 0) {
+					break;
+				}
+			}		
+			tokens.push(lookahead);
+			old = lookahead;
+			lookahead = nextToken();
+		}
+		var expr;
+		if(isNotFunc) {
+			expr = parseExpr0(tokens);
+		} else {
+			expr = parseFuncCallExpr(tokens);
+		}
+		if(!expr) {
+			throw "error";
+		}
+		if(!MatchToken(')')) {
+			throw "error";
+		}
+		var stats;
+		if(lookahead.value == '{') {
+			stats = parseBlock();
+		} else {
+			stats = parseStat();
+		}
+		if(!stats) {
+			throw "error";
+		}
+		return {type:"whileStats", expr:expr, stats:stats}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseIfStat() {
+	try {
+		if(!MatchToken('if')) {
+			throw "error";
+		}
+		if(!MatchToken('(')) {
+			throw "error";
+		}
+		var tokens = [];
+		var brackets = [];
+		brackets.push('(');
+		var isNotFunc = true;
+		var old;
+		while(1) {
+			if(old && old.type == "id" && lookahead.value == '(') {
+				isNotFunc = false;
+			}
+			if(lookahead.value == '(') {
+				brackets.push('(');
+			} else if(lookahead.value == ')') {
+				brackets.pop(')');
+				if(brackets.length == 0) {
+					break;
+				}
+			}		
+			tokens.push(lookahead);
+			old = lookahead;
+			lookahead = nextToken();
+		}
+		var expr;
+		if(isNotFunc) {
+			expr = parseExpr0(tokens);
+		} else {
+			expr = parseFuncCallExpr(tokens);
+		}
+		if(!expr) {
+			throw "error";
+		}
+		if(!MatchToken(')')) {
+			throw "error";
+		}
+		var ifstats;
+		if(lookahead.value == '{') {
+			ifstats = parseBlock();
+		} else {
+			ifstats = parseStat();
+		}
+		if(!ifstats) {
+			throw "error";
+		}
+		var elsestats;
+		if(lookahead.value == 'else') {
+			if(!MatchToken('else')) {
+				throw "error";
+			}
+			if(lookahead.value == 'if') {
+				elsestats = parseIfStat();
+			} else if(lookahead.value == '{') {
+				elsestats = parseBlock();
+			} else {
+				elsestats = parseStat();
+			}
+		}
+		return {type:"ifstats", expr:expr, ifstats:ifstats, elsestats:elsestats}
+	} catch(err) {
+		return false;
+	}
+}
+
+function parseReturnStat() {
+	try {
+		if(!MatchToken('return')) {
+			throw "error";
+		}
+		var pattern = [];
+		while(lookahead.value != ';') {
+			pattern.push(lookahead);
+			lookahead = nextToken();
+		}
+		var retExpr = parseExpr0(pattern);
+		if(!retExpr) {
+			throw "error";
+		}
+		if(!MatchToken(';')) {
+			throw "error";
+		}
+		return {type:"returnStat", retExpr:retExpr}
 	} catch(err) {
 		return false;
 	}
@@ -598,13 +1178,13 @@ function parseStat() {
 	try {
 		var stat;
 		if(lookahead.value == "for") {
-			throw "error";
+			stat = parseForStat();
 		} else if(lookahead.value == "while") {
-			throw "error";
+			stat = parseWhileStat();
 		} else if(lookahead.value == "if") {
-			throw "error";
+			stat = parseIfStat();
 		} else if(lookahead.value == "return") {
-			throw "error";
+			stat = parseReturnStat();
 		} else {			
 			var pattern = [];
 			var isAssignStat = false;
@@ -623,6 +1203,9 @@ function parseStat() {
 			if(!MatchToken(';')) {
 				throw "error";
 			}
+		}
+		if(!stat) {
+			throw "error";
 		}
 		return stat;
 	} catch(err) {

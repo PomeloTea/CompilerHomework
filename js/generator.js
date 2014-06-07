@@ -102,8 +102,6 @@ function generateStat(stat) {
 	switch(stat.type) {
 		case "assignExpr":
 			return generateAssignExpr(stat);
-		case "assignExpr":
-			return generateAssignExpr(stat);
 		case "valueSetExpr":
 			return generateValueSetExpr(stat);
 		case "newArrayExpr":
@@ -115,32 +113,16 @@ function generateStat(stat) {
 		case "varExpr":
 			return stat.variable;
 		case "forwardUnaryOprtExpr":
-			return stat.oprt + '(' + generateStat(stat.expr) + ')';
+			return stat.oprt + generateStat(stat.expr);
+		case "backUnaryOprtExpr":
+			return generateStat(stat.expr) + stat.oprt;
+		case "objAttrExpr":
+			return stat.objName + '.' + stat.attrName;
+		case "callFuncExpr":
+			return stat.objName + '.' + stat.funcName + '(' + generateExprList(stat.paraList, ',') + ')';
 		default:
 			return "ha";
 	}
-	/*
-	if(stat.expr.type != undefined) {
-		switch(stat.expr.type) {
-			case "newArrayExpr":
-				statCode += "var " + stat.varName + " = new Array(";
-				statCode += generateExpr(stat.expr.size) + ")";
-				break;
-			case "newObjectExpr":
-				statCode += "var " + stat.varName + " = new ";
-				statCode += stat.expr.className + "(";
-				for(var i in stat.expr.paraList) {
-					statCode += generateExpr(stat.expr.paraList[i]) + ", ";
-				}
-				if(stat.expr.paraList.length > 0)
-					statCode = statCode.substr(0, statCode.length - 2);
-				statCode += ")";
-				break;
-		}
-	} else {
-		statCode += stat.varName;
-	}
-	*/
 	return statCode;
 }
 

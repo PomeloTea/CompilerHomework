@@ -126,7 +126,7 @@ function nextToken() {
 		case "<=" :
 		case "==" :
 		case "!=" :
-			type = "compOptr";
+			type = "compOprt";
 			break;
 		case "{":
 		case "}" :
