@@ -53,28 +53,84 @@ function generateCParaList(paraList) {
 	return paraListCode;
 }
 
-function generateStat(stat, tab) {
-	var statCode = addTab(tab);
+function generateExprList(expr, str) {
+	var exprCode = "";
+	if(expr.length > 0) {
+		for(var i in expr) {
+			exprCode += generateStat(expr[i]) + str + " ";
+		}
+		exprCode = exprCode.substr(0, exprCode.length - 1 - str.length);
+	}
+	return exprCode;
+}
+
+function generateAssignExpr(expr) {
+	var exprCode = "";
+	if(expr.varType != undefined) {
+		exprCode += "var ";
+	}
+	exprCode += expr.varName;
+	if(expr.pos != undefined) {
+		exprCode += "[" + generateStat(expr.pos) + "]";
+	}
+	exprCode += " = " + generateStat(expr.expr);
+	return exprCode;
+}
+
+function generateValueSetExpr(expr) {
+	var exprCode = "[";
+	exprCode += generateExprList(expr.valueSet, ',');
+	exprCode += "]";
+	return exprCode;
+}
+
+function generateNewArrayExpr(expr) {
+	var exprCode = "new Array(";
+	exprCode += generateStat(expr.size);
+	exprCode += ")";
+	return exprCode;
+}
+
+function generateNewObjectExpr(expr) {
+	var exprCode = "new " + expr.className + "(";
+	exprCode += generateExprList(expr.paraList, ',');
+	exprCode += ")";
+	return exprCode;
+}
+
+function generateStat(stat) {
+	switch(stat.type) {
+		case "assignExpr":
+			return generateAssignExpr(stat);
+		case "assignExpr":
+			return generateAssignExpr(stat);
+		case "valueSetExpr":
+			return generateValueSetExpr(stat);
+		case "newArrayExpr":
+			return generateNewArrayExpr(stat);
+		case "newObjectExpr":
+			return generateNewObjectExpr(stat);
+		case "atomExpr":
+			return stat.value;
+		case "varExpr":
+			return stat.variable;
+		case "forwardUnaryOprtExpr":
+			return stat.oprt + '(' + generateStat(stat.expr) + ')';
+		default:
+			return "ha";
+	}
+	/*
 	if(stat.expr.type != undefined) {
 		switch(stat.expr.type) {
-			case "valueSetExpr":
-				statCode += "var " + stat.varName + " = [";
-				for(var i in stat.expr.valueSet) {
-					statCode += stat.expr.valueSet[i] + ", ";
-				}
-				if(stat.expr.valueSet.length > 0)
-					statCode = statCode.substr(0, statCode.length - 2);
-				statCode += "]";
-				break;
 			case "newArrayExpr":
 				statCode += "var " + stat.varName + " = new Array(";
-				statCode += stat.expr.size + ")";
+				statCode += generateExpr(stat.expr.size) + ")";
 				break;
 			case "newObjectExpr":
 				statCode += "var " + stat.varName + " = new ";
 				statCode += stat.expr.className + "(";
 				for(var i in stat.expr.paraList) {
-					statCode += stat.expr.paraList[i] + ", ";
+					statCode += generateExpr(stat.expr.paraList[i]) + ", ";
 				}
 				if(stat.expr.paraList.length > 0)
 					statCode = statCode.substr(0, statCode.length - 2);
@@ -84,7 +140,7 @@ function generateStat(stat, tab) {
 	} else {
 		statCode += stat.varName;
 	}
-	statCode += ";\n";
+	*/
 	return statCode;
 }
 
@@ -122,7 +178,6 @@ function generateCfunc(cfunc, tab) {
 	*/
 	var cfuncCode = addTab(tab) + cfunc.name + "._(";
 	cfuncCode += generateCParaList(cfunc.paraList);
-	//generateStats(cfunc.stats);
 	cfuncCode += addTab(tab) + "});\n\n";
 	return cfuncCode;
 }
@@ -149,7 +204,9 @@ function generateMainMethod(method) {
 	mainCode += generateParaList(method.paraList);
 	mainCode += ") {\n";
 	for(var i in method.stats) {
-		mainCode += generateStat(method.stats[i], 1);
+		mainCode += addTab(1);
+		mainCode += generateStat(method.stats[i]);
+		mainCode += ";\n";
 	}
 	mainCode += "}\n\n";
 	return mainCode;
