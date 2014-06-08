@@ -45,7 +45,7 @@ $(document).ready(function() {
     $('#filelist').on('click', '.download', function(){
         var filename = $($(this).parent().children()[0]).html();
         filename = filename.substr(0, filename.indexOf('.'));
-        doSave("result", "text/latex", filename + "-result.js");
+        doSave(result, "text/latex", filename + "-result.js");
     });
 
     $('#filelist').on('click', 'a', function(){
@@ -56,12 +56,9 @@ $(document).ready(function() {
         source = source.replace(/\n/g, "<br/>");
         source = source.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
         $('#source-div').html(source);
-        result = result.replace(/\n/g, "<br/>");
-        result = result.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
-        $('#result-div').html(result);
-    });
-
-    $('#myclassDownload-btn').click(function(){
+        var result1 = result.replace(/\n/g, "<br/>");
+        result1 = result1.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+        $('#result-div').html(result1);
     });
 
 });

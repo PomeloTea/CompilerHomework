@@ -24,17 +24,6 @@ class MyArrayList {
 		}
 	}
 
-	// 构造一个指定数组内容的列表
-	MyArrayList(int[] list) {
-		if (list == null) {
-			this.size = 0;
-			this.elementData = null;
-		} else {
-			this.size = list.length;
-			this.elementData = newCopyArray(list, this.size);
-		}
-	}
-
 	// 存储
 
 	// 用指定元素替代此列表中指定位置上的元素，并返回以前位于该位置上的元素
@@ -133,12 +122,10 @@ class MyArrayList {
 
 	// 用于测试的main函数
 	public static void main(String[] args) {
-		int[] list0 = { 1, 2, 3, 4, 5, 6, 7 };
 		
 		// initial test
 		MyArrayList list1 = new MyArrayList();
 		MyArrayList list2 = new MyArrayList(5);
-		MyArrayList list3 = new MyArrayList(list0);
 		
 		// add test
 		for (int i = 1; i <= 5; i++) {
