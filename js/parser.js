@@ -313,6 +313,7 @@ function parseExpr9(tokens) {
 
 function parseExpr8(tokens) {
 	try {
+
 		if(tokens[0].type == 'unaryOprt') {
 			//~expr !expr ++expr --expr
 			var oprt = tokens[0].value;
@@ -352,7 +353,6 @@ function parseExpr8(tokens) {
 			if(!expr) {
 				throw "error";
 			}
-			var expr = parseExpr9(pattern);
 			return {type:"backUnaryOprtExpr", oprt:oprt, expr:expr}
 		} else {
 			var expr = parseExpr9(tokens);
@@ -1049,7 +1049,7 @@ function parseAssignStat(tokens) {
  			if(isAssignStat) {
  				pos = parseAssignStat(posPattern);
  			} else {
- 				pos = parseExpr0(posPattern);
+ 				pos = parseExpr(posPattern);
  			}
  			isAssignStat = false;
  			for(i = i + 2; i < tokens.length; i++) {
@@ -1098,29 +1098,30 @@ function parseSingleExpr(tokens) {
 		if(tokens[0].value == '++' || tokens[0].value == '--') {
 			//++expr --expr
 			var oprt = tokens[0].value;
-			if(tokens.length != 2) {
-				throw "error";
-			}
 			if(!isValidID(tokens[1].value)) {
 				throw "error";
 			}
-			var pattern = [];
-			pattern.push(tokens[1]);
-			var expr = parseExpr9(pattern);
+			var exprPattern = [];
+			for(var i = 1; i < tokens.length; i++) {
+				exprPattern.push(tokens[i]);
+			}
+			if(exprPattern.length <= 0) {
+				throw "error";
+			}
+			var expr = parseExpr9(exprPattern);
 			return {type:"forwardUnaryOprtExpr", oprt:oprt, expr:expr}
 		} else if(tokens[tokens.length-1].value == '++' 
 			|| tokens[tokens.length-1].value == '--') {
 			//erpr++ expr--
-			var oprt = tokens[1].value;
-			if(tokens.length != 2) {
-				throw "error";
+			var oprt = tokens[tokens.length-1].value;
+			var exprPattern = [];
+			for(var i = 0; i < tokens.length-1; i++) {
+				exprPattern.push(tokens[i]);
 			}
-			if(!isValidID(tokens[0].value)) {
+			if(exprPattern.length <= 0) {
 				throw "error";
-			}
-			var pattern = [];
-			pattern.push(tokens[0]);
-			var expr = parseExpr9(pattern);
+			}			
+			var expr = parseExpr9(exprPattern);
 			return {type:"backUnaryOprtExpr", oprt:oprt, expr:expr}
 		} else {
 			if(tokens[0].type == "id" && isValidID(tokens[0].value)) {
