@@ -10,27 +10,28 @@ class MyArrayList {
 
 	// 默认构造函数，构造一个容量为10的空列表
 	MyArrayList() {
-		this(10);
+		this.size = 0;
+		this.elementData = new int[10];
 	}
 
 	// 构造一个指定初始容量的空列表
 	MyArrayList(int initialCapacity) {
-		size = 0;
+		this.size = 0;
 		if (initialCapacity < 0) {
-			elementData = null;
+			this.elementData = null;
 		} else {
-			elementData = new int[initialCapacity];
+			this.elementData = new int[initialCapacity];
 		}
 	}
 
 	// 构造一个指定数组内容的列表
 	MyArrayList(int[] list) {
 		if (list == null) {
-			size = 0;
-			elementData = null;
+			this.size = 0;
+			this.elementData = null;
 		} else {
-			size = list.length;
-			elementData = newCopyArray(list, size);
+			this.size = list.length;
+			this.elementData = newCopyArray(list, this.size);
 		}
 	}
 
@@ -39,8 +40,8 @@ class MyArrayList {
 	// 用指定元素替代此列表中指定位置上的元素，并返回以前位于该位置上的元素
 	int set(int index, int element) {
 		if (RangeCheck(index)) {
-			int oldValue = elementData[index];
-			elementData[index] = element;
+			int oldValue = this.elementData[index];
+			this.elementData[index] = element;
 			return oldValue;
 		}
 		return 0;
@@ -48,22 +49,22 @@ class MyArrayList {
 
 	// 将指定元素添加到此列表的尾部
 	boolean add(int element) {
-		ensureCapacity(size + 1);
-		elementData[size++] = element;
+		ensureCapacity(this.size + 1);
+		this.elementData[this.size++] = element;
 		return true;
 	}
 
 	// 将指定元素插入此列表中的指定位置。
 	// 如果当前位置有元素，则向右移动位于当前位置的元素以及所有后续元素（将其索引+1）
 	boolean add(int index, int element) {
-		if (index > size || index < 0) {
+		if (index > this.size || index < 0) {
 			return false;
 		} else {
-			ensureCapacity(++size);
-			for (int i = size - 1; i > index; i--) {
-				elementData[i] = elementData[i - 1];
+			ensureCapacity(++this.size);
+			for (int i = this.size - 1; i > index; i--) {
+				this.elementData[i] = this.elementData[i - 1];
 			}
-			elementData[index] = element;
+			this.elementData[index] = element;
 			return true;
 		}
 	}
@@ -73,7 +74,7 @@ class MyArrayList {
 	// 返回此列表中指定位置上的元素
 	int get(int index) {
 		if (RangeCheck(index)) {
-			return elementData[index];
+			return this.elementData[index];
 		}
 		return 0;
 	}
@@ -83,11 +84,11 @@ class MyArrayList {
 	// 移除此列表中指定位置上的元素
 	int remove(int index) {
 		if (RangeCheck(index)) {
-			int oldValue = elementData[index];
-			for (int i = index; i < size - 1; i++) {
-				elementData[i] = elementData[i + 1];
+			int oldValue = this.elementData[index];
+			for (int i = index; i < this.size - 1; i++) {
+				this.elementData[i] = this.elementData[i + 1];
 			}
-			elementData[--size] = 0;
+			this.elementData[--this.size] = 0;
 			return oldValue;
 		}
 		return 0;
@@ -97,7 +98,7 @@ class MyArrayList {
 
 	// 检测下标是否越界
 	boolean RangeCheck(int index) {
-		if (index >= size) {
+		if (index >= this.size) {
 			return false;
 		} else {
 			return true;
@@ -109,14 +110,14 @@ class MyArrayList {
 	// 若minCapacity仍然大于增加后的容量，则使用minCapacity作为新容量
 	// 若minCapacity不大于增加后的容量，则使用增加后的容量
 	void ensureCapacity(int minCapacity) {
-		int oldCapacity = elementData.length;
+		int oldCapacity = this.elementData.length;
 		if (minCapacity > oldCapacity) {
-			int oldData[] = elementData;
+			int oldData[] = this.elementData;
 			int newCapacity = (oldCapacity * 3) / 2 + 1;
 			if (minCapacity > newCapacity) {
 				newCapacity = minCapacity;
 			}
-			elementData = newCopyArray(oldData, newCapacity);
+			this.elementData = newCopyArray(oldData, newCapacity);
 
 		}
 	}

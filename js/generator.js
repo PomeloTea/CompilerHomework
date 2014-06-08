@@ -44,8 +44,14 @@ function generateParaList(paraList) {
 
 function generateCParaList(paraList) {
 	var paraListCode = "";
-	for(var i = 0; i < paraList.length; i++) {
-		//paraListCode += paraList[i].name + ", ";
+	if(paraList) {
+		for(var i in paraList) {
+			if(paraList[i].isArray)
+				paraListCode += "Array, "
+			else if(paraList[i].paraType == 'int')
+				paraListCode += "Integer, ";
+		}
+		paraListCode.substr(0, paraListCode.length - 2);
 	}
 	paraListCode += "function(";
 	paraListCode += generateParaList(paraList);
@@ -64,8 +70,8 @@ function generateExprList(expr, str) {
 	return exprCode;
 }
 
-function generateAssignExpr(expr) {
-	var exprCode = "";
+function generateAssignExpr(expr, tab) {
+	var exprCode = addTab(tab);
 	if(expr.varType != undefined) {
 		exprCode += "var ";
 	}
@@ -74,6 +80,7 @@ function generateAssignExpr(expr) {
 		exprCode += "[" + generateStat(expr.pos) + "]";
 	}
 	exprCode += " = " + generateStat(expr.expr);
+	exprCode += ";\n";
 	return exprCode;
 }
 
@@ -98,16 +105,37 @@ function generateNewObjectExpr(expr) {
 	return exprCode;
 }
 
-function generateStat(stat) {
+function generateIfStats(expr, tab) {
+	var exprCode = addTab(tab);
+	exprCode += "if(" + generateStat(expr.expr, 0) + ") {\n";
+	for(var i in expr.ifstats) {
+		exprCode += generateStat(expr.ifstats[i], tab + 1);
+	}
+	exprCode += addTab(tab) + "}";
+	if(expr.elsestats) {
+		exprCode += " else {\n";
+		for(var i in expr.elsestats) {
+			exprCode += generateStat(expr.elsestats[i], tab + 1);
+		}
+		exprCode += addTab(tab) + "}\n";
+	} else {
+		exprCode += "\n";
+	}
+	return exprCode;
+}
+
+function generateStat(stat, tab) {
 	switch(stat.type) {
 		case "assignExpr":
-			return generateAssignExpr(stat);
+			return generateAssignExpr(stat, tab);
 		case "valueSetExpr":
 			return generateValueSetExpr(stat);
 		case "newArrayExpr":
 			return generateNewArrayExpr(stat);
 		case "newObjectExpr":
 			return generateNewObjectExpr(stat);
+		case "ifstats":
+			return generateIfStats(stat, tab);
 		case "atomExpr":
 			return stat.value;
 		case "varExpr":
@@ -119,11 +147,16 @@ function generateStat(stat) {
 		case "objAttrExpr":
 			return stat.objName + '.' + stat.attrName;
 		case "callFuncExpr":
-			return stat.objName + '.' + stat.funcName + '(' + generateExprList(stat.paraList, ',') + ')';
+			return addTab(tab) + stat.objName + '.' + stat.funcName + '(' + generateExprList(stat.paraList, ',') + ');\n';
+		case "compExpr":
+			return generateStat(stat.left) + ' ' + stat.oprt + ' ' + generateStat(stat.right);
+		case "equalExpr":
+			return generateStat(stat.left) + ' ' + stat.oprt + ' ' + generateStat(stat.right);
+		case "ntfExpr":
+			return stat.value;
 		default:
 			return "ha";
 	}
-	return statCode;
 }
 
 function generateField(field, tab) {
@@ -160,6 +193,9 @@ function generateCfunc(cfunc, tab) {
 	*/
 	var cfuncCode = addTab(tab) + cfunc.name + "._(";
 	cfuncCode += generateCParaList(cfunc.paraList);
+	for(var i in cfunc.stats) {
+		cfuncCode += generateStat(cfunc.stats[i], tab + 1);
+	}
 	cfuncCode += addTab(tab) + "});\n\n";
 	return cfuncCode;
 }
@@ -186,9 +222,7 @@ function generateMainMethod(method) {
 	mainCode += generateParaList(method.paraList);
 	mainCode += ") {\n";
 	for(var i in method.stats) {
-		mainCode += addTab(1);
-		mainCode += generateStat(method.stats[i]);
-		mainCode += ";\n";
+		mainCode += generateStat(method.stats[i], 1);
 	}
 	mainCode += "}\n\n";
 	return mainCode;
