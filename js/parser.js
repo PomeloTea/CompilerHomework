@@ -280,12 +280,14 @@ function parseExpr9(tokens) {
 					}
 					var objName = tokens[0].value;
 					if(tokens.length == 3) {
+						//obj.attr
 						if(!isValidID(tokens[2].value)) {
 							throw "error";
 						}
 						var attrName = tokens[2].value;
 						return {type:"objAttrExpr", objName:objName, attrName:attrName}
 					} else {
+						//obj.xxx.attr
 						var pattern = [];
 						for(var i = 2; i < tokens.length; i++) {
 							pattern.push(tokens[i]);
@@ -293,7 +295,7 @@ function parseExpr9(tokens) {
 						if(pattern.length <= 0) {
 							throw "error";
 						}
-						var expr = parseExpr9(pattern);
+						var expr = parseExpr(pattern);
 						if(!expr) {
 							throw "error";
 						}
@@ -315,9 +317,6 @@ function parseExpr8(tokens) {
 			//~expr !expr ++expr --expr
 			var oprt = tokens[0].value;
 			if(oprt == "++" || oprt == "--") {
-				if(tokens.length != 2) {
-					throw "error";
-				}
 				if(!isValidID(tokens[1].value)) {
 					throw "error";
 				}
@@ -338,15 +337,21 @@ function parseExpr8(tokens) {
 		} else if(tokens[tokens.length-1].value == '++' 
 			|| tokens[tokens.length-1].value == '--') {
 			//expr++ expr--
-			var oprt = tokens[1].value;
-			if(tokens.length != 2) {
-				throw "error";
-			}
+			var oprt = tokens[tokens.length-1].value;
 			if(!isValidID(tokens[0].value)) {
 				throw "error";
 			}
-			var pattern = [];
-			pattern.push(tokens[0]);
+			var exprPattern = [];
+			for(var i = 0; i < tokens.length-1; i++) {
+				exprPattern.push(tokens[i]);
+			}
+			if(exprPattern.length <= 0) {
+				throw "error";
+			}
+			var expr = parseExpr9(exprPattern);
+			if(!expr) {
+				throw "error";
+			}
 			var expr = parseExpr9(pattern);
 			return {type:"backUnaryOprtExpr", oprt:oprt, expr:expr}
 		} else {
@@ -364,11 +369,28 @@ function parseExpr8(tokens) {
 function parseExpr7(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == '*' || tokens[i].value == '/' || tokens[i].value == '%') {
-				flag = true;
-				break;
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == '[') {
+				brackets.push('[')
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '(') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ']') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '[') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == '*' || tokens[i].value == '/' || tokens[i].value == '%') {
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -408,11 +430,28 @@ function parseExpr7(tokens) {
 function parseExpr6(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == '+' || tokens[i].value == '-') {
-				flag = true;
-				break;
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == '[') {
+				brackets.push('[')
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '(') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ']') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '[') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == '+' || tokens[i].value == '-') {
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -427,13 +466,21 @@ function parseExpr6(tokens) {
 			oprt = tokens[i].value;
 			for(var j = i+1; j < tokens.length; j++) {
 				right.push(tokens[j]);
-			}
-			if(left.length <= 0 || right.length <= 0) {
+			}			
+			var leftexpr;
+			var noLeftExpr = false;
+			if(left.length < 0 || right.length <= 0) {
 				throw "error";
-			} 
-			var leftexpr = parseExpr7(left);
+			} else if(left.length == 0) {
+				noLeftExpr = true;
+			} else {
+				leftexpr = parseExpr7(left);
+			}
+			if(!noLeftExpr && !leftexpr) {
+				throw "error";
+			}
 			var rightexpr = parseExpr7(right);
-			if(!leftexpr || !rightexpr) {
+			if(!rightexpr) {
 				throw "error";
 			}
 			return {type:"expr", oprt:oprt, left:leftexpr, right:rightexpr}
@@ -452,12 +499,22 @@ function parseExpr6(tokens) {
 function parseExpr5(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == '<=' || tokens[i].value == '>='
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0) {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == '<=' || tokens[i].value == '>='
 				|| tokens[i].value == '<' || tokens[i].value == '>') {
-				flag = true;
-				break;
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -497,11 +554,28 @@ function parseExpr5(tokens) {
 function parseExpr4(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == '==' || tokens[i].value == '!=') {
-				flag = true;
-				break;
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == '[') {
+				brackets.push('[')
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '(') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ']') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '[') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == '==' || tokens[i].value == '!=') {
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -540,11 +614,28 @@ function parseExpr4(tokens) {
 function parseExpr3(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == '&&') {
-				flag = true;
-				break;
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == '[') {
+				brackets.push('[')
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '(') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ']') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '[') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == '&&') {
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -583,11 +674,28 @@ function parseExpr3(tokens) {
 function parseExpr2(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == '||') {
-				flag = true;
-				break;
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == '[') {
+				brackets.push('[')
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '(') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ']') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '[') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == '||') {
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -667,11 +775,28 @@ function parseExpr1(tokens) {
 function parseExpr0(tokens) {
 	try {
 		var flag = false;
+		var brackets = [];
 		var i;
 		for(i = 0; i < tokens.length; i++) {
-			if(tokens[i].value == ',') {
-				flag = true;
-				break;
+			if(tokens[i].value == '(') {
+				brackets.push('(');
+			} else if(tokens[i].value == '[') {
+				brackets.push('[')
+			} else if(tokens[i].value == ')') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '(') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ']') {
+				if(brackets.length <= 0 || brackets[brackets.length-1] != '[') {
+					throw "error";
+				}
+				brackets.pop();
+			} else if(tokens[i].value == ',') {
+				if(brackets.length == 0) {					
+					flag = true;
+					break;
+				}
 			}
 		}
 		if(flag) {
@@ -816,6 +941,7 @@ function parseAssignStat(tokens) {
 		var pos;
 		var exprPattern = [];
 		var expr;
+		var isAssignStat = false;
 
 		//left side of "="
 		if(tokens[1].value == "=") {
@@ -824,6 +950,9 @@ function parseAssignStat(tokens) {
 			varName = tokens[0].value;
 			for(var i = 2; i < tokens.length; i++) {
 				exprPattern.push(tokens[i]);
+				if(tokens[i].value == '=') {
+					isAssignStat = true;
+				}
 			}
 		} else if(tokens[2].value == "=") {
 			//type id = expr;
@@ -831,6 +960,9 @@ function parseAssignStat(tokens) {
 			varName = tokens[1].value;
 			for(var i = 3; i < tokens.length; i++) {
 				exprPattern.push(tokens[i]);
+				if(tokens[i].value == '=') {
+					isAssignStat = true;
+				}
 			}
 		} else if(tokens[1].value == '[' && tokens[2].value == ']') {
 			isArray = true;
@@ -843,14 +975,25 @@ function parseAssignStat(tokens) {
 				}
 				for(var i = 5; i < tokens.length; i++) {
 					exprPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
 				}
 			} else if(tokens[5].value == '{') {
 				//type[] id = {a, b, c}
 				for(var i = 5; i < tokens.length; i++) {
 					exprPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
 				}
 			} else {
-				throw "error";
+				for(var i = 5; i < tokens.length; i++) {
+					exprPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
+				}
 			}
  		} else if(tokens[2].value == '[' && tokens[3].value == ']') {
 			isArray = true;
@@ -863,6 +1006,9 @@ function parseAssignStat(tokens) {
 				}
 				for(var i = 5; i < tokens.length; i++) {
 					exprPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
 				}
 			} else if(tokens[5] == '{') {
 				//type id[] = {a, b, c}
@@ -871,9 +1017,17 @@ function parseAssignStat(tokens) {
 				}
 				for(var i = 5; i < tokens.length; i++) {
 					exprPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
 				}
 			} else {
-				throw "error";
+				for(var i = 5; i < tokens.length; i++) {
+					exprPattern.push(tokens[i]);
+					if(tokens[i].value == '=') {
+						isAssignStat = true;
+					}
+				}
 			}
  		} else if(tokens[1].value == '[') {
  			//id[expr] = expr;
@@ -885,21 +1039,51 @@ function parseAssignStat(tokens) {
  					break;
  				}
  				posPattern.push(tokens[i]);
+				if(tokens[i].value == '=') {
+					isAssignStat = true;
+				}
  			}
  			if(posPattern.length <= 0) {
  				throw "error";
  			}
- 			pos = parseExpr0(posPattern);
+ 			if(isAssignStat) {
+ 				pos = parseAssignStat(posPattern);
+ 			} else {
+ 				pos = parseExpr0(posPattern);
+ 			}
+ 			isAssignStat = false;
  			for(i = i + 2; i < tokens.length; i++) {
  				exprPattern.push(tokens[i]);
+				if(tokens[i].value == '=') {
+					isAssignStat = true;
+				}
  			}
+ 		} else if(tokens[1].value == '.'){
+ 			//obj.field = expr
+ 			if(!isValidID(tokens[0].value)) {
+ 				throw "error";
+ 			}
+ 			var objName = tokens[0].value;
+ 			var pattern = [];
+ 			for(var j = 2; j < tokens.length; j++) {
+ 				pattern.push(tokens[j]);
+ 			}
+ 			var field = parseAssignStat(pattern);
+ 			if(!field) {
+ 				throw "error";
+ 			}
+ 			return {type:"fieldAssignExpr", objName:objName, expr:field}
  		} else {
 			throw "error";
 		}
 		if(exprPattern.length <= 0) {
 			throw "error";
 		}
-		expr = parseExpr(exprPattern);
+		if(isAssignStat) {
+			expr = parseAssignStat(exprPattern);
+		} else {
+			expr = parseExpr(exprPattern);
+		}
 		if(!expr) {
 			throw "error";
 		}
@@ -993,14 +1177,24 @@ function parseForStat() {
 		}
 
 		tokens = [];
-		while(lookahead.value != ';') {
+		var brackets = [];
+		brackets.push('(');
+		while(1) {
+			if(lookahead.value == '(') {
+				brackets.push('(');
+			} else if(lookahead.value == ')') {
+				brackets.pop(')');
+				if(brackets.length == 0) {
+					break;
+				}
+			}		
 			tokens.push(lookahead);
 			lookahead = nextToken();
 		}
 		var expr3;
-		if(tokens[0] == '++' || tokens[0] == '--'
-			|| tokens[tokens.length-1] == '++' || tokens[tokens.length-1] == '--') {
-			expr3 = parseSingleExpr();
+		if(tokens[0].value == '++' || tokens[0].value == '--'
+			|| tokens[tokens.length-1].value == '++' || tokens[tokens.length-1].value == '--') {
+			expr3 = parseSingleExpr(tokens);
 		} else {
 			expr3 = parseAssignStat(tokens);
 		}
@@ -1161,7 +1355,7 @@ function parseReturnStat() {
 			pattern.push(lookahead);
 			lookahead = nextToken();
 		}
-		var retExpr = parseExpr0(pattern);
+		var retExpr = parseExpr(pattern);
 		if(!retExpr) {
 			throw "error";
 		}
