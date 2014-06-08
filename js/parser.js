@@ -1668,10 +1668,11 @@ function Parser() {
 	lookaheadptr = -1;
 	lookahead = nextToken();
 	try {
-		grammarTree = parseProgram();
-		if(!grammarTree){
+		var grammarTreeTemp = parseProgram();
+		if(!grammarTreeTemp){
 			throw "error";
 		}
+		return grammarTreeTemp;
 	} catch(err) {
 		alert("syntax error");
 		return false;

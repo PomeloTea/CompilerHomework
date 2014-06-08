@@ -52,8 +52,12 @@ function generateAssignExpr(expr, tab, inFor, paras) {
 	exprCode += expr.varName;
 	if(expr.pos != undefined) {
 		exprCode += "[" + generateStat(expr.pos, 0, true, paras) + "]";
+		exprCode += " = " + generateStat(expr.expr, 0, true, paras);
+	} else if(expr.varType == 'int' && !expr.isArray) {
+		exprCode += " = parseInt(" + generateStat(expr.expr, 0, true, paras) + ")";
+	} else {
+		exprCode += " = " + generateStat(expr.expr, 0, true, paras);
 	}
-	exprCode += " = " + generateStat(expr.expr, 0, true, paras);
 	if(inFor != true)
 		exprCode += ";\n"
 	return exprCode;
@@ -243,13 +247,13 @@ function generateMultipleMethod(methods, tab) {
 			for(var j in methods[i].paraList) {
 				var type = methods[i].paraList[j].paraType;
 				if(type == 'int') {
-					methodsCode += 'number, ';
+					methodsCode += 'number,';
 					paras.push(methods[i].paraList[j].name);
 				}
 				else
 					methodsCode += 'undefined';
 			}
-			methodsCode = methodsCode.substr(0, methodsCode.length - 2);
+			methodsCode = methodsCode.substr(0, methodsCode.length - 1);
 		}
 		methodsCode += "': function() {\n";
 		for(var j in methods[i].stats) {
@@ -257,13 +261,12 @@ function generateMultipleMethod(methods, tab) {
 		}
 		methodsCode += addTab(tab + 1) + "},\n";
 	}
-	methodsCode.substr(0, methodsCode.length - 2);
+	methodsCode = methodsCode.substr(0, methodsCode.length - 2) + '\n';
 	methodsCode += addTab(tab) + "});\n\n";
 	return methodsCode;
 }
 
 function generateMainMethod(method) {
-	console.log(method);
 	var mainCode = "function main(";
 	mainCode += generateParaList(method.paraList);
 	mainCode += ") {\n";
@@ -353,7 +356,6 @@ function Gnerator(program) {
 	if(program.type != "program")
 		return "";
 
-	console.log(program);
 	var jsCode = "";
 	var mainCode;
 	if(program.classes != undefined) {

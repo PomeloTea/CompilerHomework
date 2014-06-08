@@ -18,23 +18,34 @@ var MyArrayList = class_(function(){
 		}
 	});
 
-	this.set = _(function(index, element) {
+	this.set = function(index, element) {
 		if(this.RangeCheck(index)) {
-			var oldValue = this.elementData[index];
+			var oldValue = parseInt(this.elementData[index]);
 			this.elementData[index] = element;
 			return oldValue;
 		}
 		return 0;
-	});
-
-	this.add = function(index, element) {
-		this.ensureCapacity(++this.size);
-		for(var i = this.size-1; i > index; i--) {
-			this.elementData[i] = this.elementData[i-1];
-		}
-		this.elementData[index] = element;
-		return true;
 	};
+
+	this.add = FunctionH.overload({
+		'number': function() {
+			this.ensureCapacity(this.size+1);
+			this.elementData[this.size++] = arguments[0];
+			return true;
+		},
+		'number,number': function() {
+			if(arguments[0] > this.size || arguments[0] < 0) {
+				return false;
+			} else {
+				this.ensureCapacity(++this.size);
+				for(var i = parseInt(this.size-1); i > arguments[0]; i--) {
+					this.elementData[i] = this.elementData[i-1];
+				}
+				this.elementData[arguments[0]] = arguments[1];
+				return true;
+			}
+		}
+	});
 
 	this.get = function(index) {
 		if(this.RangeCheck(index)) {
@@ -45,8 +56,8 @@ var MyArrayList = class_(function(){
 
 	this.remove = function(index) {
 		if(this.RangeCheck(index)) {
-			var oldValue = this.elementData[index];
-			for(var i = index; i < this.size-1; i++) {
+			var oldValue = parseInt(this.elementData[index]);
+			for(var i = parseInt(index); i < this.size-1; i++) {
 				this.elementData[i] = this.elementData[i+1];
 			}
 			this.elementData[--this.size] = 0;
@@ -64,10 +75,10 @@ var MyArrayList = class_(function(){
 	};
 
 	this.ensureCapacity = function(minCapacity) {
-		var oldCapacity = this.elementData.length;
+		var oldCapacity = parseInt(this.elementData.length);
 		if(minCapacity > oldCapacity) {
 			var oldData = this.elementData;
-			var newCapacity = (oldCapacity*3)/2+1;
+			var newCapacity = parseInt((oldCapacity*3)/2+1);
 			if(minCapacity > newCapacity) {
 				newCapacity = minCapacity;
 			}
@@ -77,7 +88,7 @@ var MyArrayList = class_(function(){
 
 	this.newCopyArray = function(list, capacity) {
 		var newList = new Array(capacity);
-		for(var i = 0; i < list.length && i < capacity; i++) {
+		for(var i = parseInt(0); i < list.length && i < capacity; i++) {
 			newList[i] = list[i];
 		}
 		return newList;
@@ -88,15 +99,20 @@ var MyArrayList = class_(function(){
 function main(args) {
 	var list1 = new MyArrayList();
 	var list2 = new MyArrayList(5);
-	for(var i = 0; i < 10; i++) {
-		list1.add(0, -i);
-		list2.add(0, i);
+	for(var i = parseInt(1); i <= 5; i++) {
+		list1.add(-i);
+		list2.add(i);
 	}
-	for(var i = 0; i < 5; i++) {
-		var x = list1.get(i);
+	for(var i = parseInt(0); i < 5; i++) {
+		list2.add(0, -1);
+	}
+	for(var i = parseInt(0); i < 5; i++) {
+		var x = parseInt(list1.get(i));
 		list2.set(i, x);
 	}
-	for(var i = 0; i < 5; i++) {
+	for(var i = parseInt(0); i < 5; i++) {
 		list2.remove(0);
 	}
 }
+
+main();
