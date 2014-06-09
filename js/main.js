@@ -1,5 +1,6 @@
 ﻿var content = [];
-var result;
+var grammarTree = [];
+var result = [];
 
 $(document).ready(function() {
 	$("#files").change(function(event) {
@@ -44,8 +45,9 @@ $(document).ready(function() {
 
     $('#filelist').on('click', '.download', function(){
         var filename = $($(this).parent().children()[0]).html();
+        var result1 = result[filename];
         filename = filename.substr(0, filename.indexOf('.'));
-        doSave("result", "text/latex", filename + "-result.js");
+        doSave(result1, "text/latex", filename + "-result.js");
     });
 
     $('#filelist').on('click', 'a', function(){
@@ -56,12 +58,9 @@ $(document).ready(function() {
         source = source.replace(/\n/g, "<br/>");
         source = source.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
         $('#source-div').html(source);
-        result = result.replace(/\n/g, "<br/>");
-        result = result.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
-        $('#result-div').html(result);
-    });
-
-    $('#myclassDownload-btn').click(function(){
+        var result1 = result[filename].replace(/\n/g, "<br/>");
+        result1 = result1.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+        $('#result-div').html(result1);
     });
 
 });
@@ -79,13 +78,15 @@ function handleFile(f) {
             while(content[filename] != undefined) {
                 filename += ' 副本';
             }
-            var fileLi = $(fileTemplate);
-            fileLi.find('.filename').html(filename);
-            $('#filelist').append(fileLi);
             content[filename] = e.target.result;
             Lexer(filename);
-            Parser();
-            result = Gnerator(grammarTree);
+            grammarTree[filename] = Parser();
+            if(grammarTree[filename]) {
+                result[filename] = Gnerator(grammarTree[filename]);
+                var fileLi = $(fileTemplate);
+                fileLi.find('.filename').html(filename);
+                $('#filelist').append(fileLi);
+            }
         }
     })(f);
     reader.readAsText(f);
