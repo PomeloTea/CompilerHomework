@@ -1593,6 +1593,19 @@ function parseClass(qualifiers) {
 					throw "error";
 				}
 				vars.push(v);
+			} else {
+				while(lookahead.value != ';') {
+					pattern.push(lookahead);
+					lookahead = nextToken();
+				}
+				var a = parseAssignStat(pattern);
+				if(!a) {
+					throw "error";
+				}
+				assigns.push(a);
+				if(!MatchToken(';')) {
+					throw "error";
+				}
 			}
 		}
 
