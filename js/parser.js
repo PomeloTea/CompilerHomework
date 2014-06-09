@@ -1623,17 +1623,7 @@ function parseDeclaration() {
 			if(!declaration) {
 				throw "error";
 			}
-		} /*else if(lookahead.type == "paraType" || lookahead.type == "id") {
-			//全局变量
-			var v = parseVariable(qualifiers);
-			if(lookahead.value == ";") {
-				MatchToken(";");
-				declaration = v;
-			} else if(lookahead.value == "=") {
-				MatchToken("=");
-				declaration = parseAssignStat(v);
-			}
-		}*/ else{
+		} else{
 			throw "error";
 		}
 		return declaration;
@@ -1645,19 +1635,19 @@ function parseDeclaration() {
 function parseProgram() {
 	try {
 		var classes = [];
-		var globalvars = [];
-		//while(lookahead != null) {
+		while(1) {
 			var d = parseDeclaration();
 			if(!d) {
 				throw "error";
 			}
 			if(d && d.type == "class") {
 				classes.push(d);
-			} else if(d && d.type == "variable") {
-				globalvars.push(d);
+			} 
+			if(lookahead == null) {
+				break;
 			}
-		//}
-		return{type: "program", classes:classes, globalvars:globalvars}
+		}
+		return{type: "program", classes:classes}
 	} catch(err) {
 		return false;
 	}
