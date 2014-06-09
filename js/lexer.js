@@ -94,9 +94,6 @@ function nextToken() {
 			type = "qualifier";
 			break;
 		case "int" :
-		case "float" :
-		case "double" :
-		case "long" :
 		case "boolean" :
 		case "byte" :
 		case "char" :
@@ -126,6 +123,8 @@ function nextToken() {
 		case "<=" :
 		case "==" :
 		case "!=" :
+		case "||" :
+		case "&&" :
 			type = "compOprt";
 			break;
 		case "{":
